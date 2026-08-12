@@ -7,11 +7,11 @@
 // |  pull future app updates without conflicts.                      |
 // +-----------------------------------------------------------------+
 window.FIREBASE_CONFIG = {
-  apiKey: "AIzaSyA6na2bzIxk1QFlmn2mOi-H3QoSI7sgRSM",
-  authDomain: "ews-fleet6.firebaseapp.com",
-  databaseURL: "https://ews-fleet6-default-rtdb.firebaseio.com",
-  projectId: "ews-fleet6",
-  storageBucket: "ews-fleet6.firebasestorage.app",
-  messagingSenderId: "577833479907",
-  appId: "1:577833479907:web:830c03ec5410116f675fd6"
+  apiKey: "AIzaSyDisY7P-l-JDGNbw0icGV7GpRPX-i16Y7g",
+  authDomain: "ews-fleet7.firebaseapp.com",
+  databaseURL: "https://ews-fleet7-default-rtdb.firebaseio.com",
+  projectId: "ews-fleet7",
+  storageBucket: "ews-fleet7.firebasestorage.app",
+  messagingSenderId: "882570204028",
+  appId: "1:882570204028:web:0d140dd3da57867010caf9"
 };
