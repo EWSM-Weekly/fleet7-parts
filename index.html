@@ -2022,6 +2022,69 @@ const PG=50;
 // snapshot), n=order notes (admin's per-item comment), bf=backorderFlag
 // (sticky once an item has lived through any weekly reset while pending).
 const SK={o:'f6_ord',k:'f6_kp',h:'f6_hi',b:'f6_ob',s:'f6_os',a:'f6_oa',lr:'f6_lr',n:'f6_on',bf:'f6_bf',rq:'f6_rq',rs:'f6_rs'};
+// ── APP BUILD / FORCED-RELOAD BROADCAST ──────────────────────────────
+// Bump APP_BUILD on EVERY deploy (YYYYMMDDnn). At sign-in each client
+// compares its baked build against the shared Firebase `appBuild` node: a
+// NEWER client announces itself (writes its build), and any OLDER signed-in
+// client that hears a newer build force-reloads to pull the new file from
+// GitHub Pages — one sign-in on the new build converges the whole fleet
+// without anyone hand-refreshing. See the appBuild listener in fbInit().
+const APP_BUILD=2026081601;
+// Arriving on a cache-busted URL (?b=...) from a forced reload: clean the
+// address bar back to the bare path.
+try{ if(location.search.indexOf('?b=')===0) history.replaceState(null,'',location.pathname); }catch(e){}
+var _updReloadPending=0;
+// Busy = mid-entry states a surprise reload would trash: an open modal,
+// staged (un-submitted) receipts, or text sitting in a focused field.
+function _f6BusyForReload(){
+  try{
+    if(document.querySelector('.modal.show')) return true;
+    if(typeof _recvStaged!=='undefined' && Object.keys(_recvStaged||{}).length) return true;
+    if(typeof _manualStaged!=='undefined' && Object.keys(_manualStaged||{}).length) return true;
+    var ae=document.activeElement;
+    if(ae && (ae.tagName==='INPUT'||ae.tagName==='TEXTAREA') && (ae.value||'')!=='') return true;
+  }catch(e){}
+  return false;
+}
+function _doUpdateReload(cb){
+  // Loop guard: if this tab already forced a reload for this exact build and
+  // is somehow still on old code (CDN lag), don't reload-spin — the next
+  // natural visit picks it up.
+  try{
+    if(sessionStorage.getItem('f6_urld')===String(cb)) return;
+    sessionStorage.setItem('f6_urld',String(cb));
+  }catch(e){}
+  window.__reloadRequested=cb;
+  // ?b=<build> makes the CDN treat this as a fresh URL — no stale cached copy.
+  try{ location.replace(location.pathname+'?b='+cb); }catch(e){ try{ location.reload(); }catch(e2){} }
+}
+function _onCloudBuild(cb){
+  if(!(cb>APP_BUILD) || _updReloadPending) return;
+  _updReloadPending=cb;
+  var login=document.getElementById('loginScreen');
+  var parked=login && login.style.display!=='none' &&
+             !((document.getElementById('userName')||{}).value) &&
+             !((document.getElementById('pwInput')||{}).value);
+  if(parked){ _doUpdateReload(cb); return; }
+  var attempt=function(){
+    if(_f6BusyForReload()){ setTimeout(attempt, 30000); return; }   // wait out mid-entry work
+    try{ if(typeof toast==='function') toast('\u2b06 App updated \u2014 reloading\u2026'); }catch(e){}
+    setTimeout(function(){ _doUpdateReload(cb); }, 2500);
+  };
+  attempt();
+}
+// Kiosk safety net: a tab parked on the login screen (nobody signed in, so no
+// Firebase broadcast can reach it) refreshes itself every 4 hours, which
+// pulls the latest deploy from Pages. Never fires after sign-in or while a
+// name/password is being typed.
+setInterval(function(){
+  try{
+    var ls=document.getElementById('loginScreen');
+    if(ls && ls.style.display!=='none' &&
+       !((document.getElementById('userName')||{}).value) &&
+       !((document.getElementById('pwInput')||{}).value)) location.reload();
+  }catch(e){}
+}, 4*3600*1000);
 // Parallel maps that travel alongside `order`. orderStatus keeps the
 // pending/submitted/received state per oracle. orderAdded keeps the ms
 // timestamp the item was first added (preserved across qty bumps so backorder
@@ -2080,6 +2143,25 @@ function favsKey(){ return 'f6_fv_' + (user ? user.role : 'default'); }
 // └─────────────────────────────────────────────────────────────────────────┘
 var firebaseConfig = window.FIREBASE_CONFIG || window.firebaseConfig || {};
 var fbApp=null, fbDb=null, fbReady=false, fbInitDone=false;
+// Initial-sync tracker: which Firebase nodes have delivered their first value
+// event this session. The weekly auto-reset must not run before every node it
+// reads AND rewrites is in — resetting from a half-synced (or never-synced)
+// view of the data is how mid-week phantom resets happened. Each listener
+// below marks its node and re-checks; see _maybeAutoResetSynced().
+var _syncSeen={};
+var _RESET_SYNC_NODES=['order','orderStatus','backorderFlag','reorderQty','reorderStatus','lastReset','hist'];
+function _resetSyncReady(){
+  if(!fbInitDone) return true;   // no Firebase (localStorage-only install) — local state IS the truth
+  for(var i=0;i<_RESET_SYNC_NODES.length;i++){ if(!_syncSeen[_RESET_SYNC_NODES[i]]) return false; }
+  return true;
+}
+// Single entry point for triggering the weekly auto-reset: no-ops until the
+// sync gate opens, then defers to maybeAutoReset (itself idempotent — it
+// early-exits once lastReset covers the current boundary).
+function _maybeAutoResetSynced(){
+  if(!_resetSyncReady()) return;
+  try{ if(typeof maybeAutoReset==='function') maybeAutoReset(); }catch(e){ console.error('autoReset',e); }
+}
 var roleListeners=[]; // unsubscribe functions for role-scoped listeners
 var _fbSaveTimer=null;
 var _suppressRender=false;
@@ -2145,6 +2227,7 @@ function fbInit(){
       var v = snap.val() || {};
       order = v;
       try{ localStorage.setItem(SK.o, JSON.stringify(v)); }catch(e){}
+      _syncSeen.order=1; _maybeAutoResetSynced();
       _rerender();
     });
     fbDb.ref('orderBy').on('value', function(snap){
@@ -2165,6 +2248,7 @@ function fbInit(){
       // Backfill any active items that don't have a status yet
       Object.keys(order||{}).forEach(function(o){ if(!(o in orderStatus)) orderStatus[o]='pending'; });
       try{ localStorage.setItem(SK.s, JSON.stringify(orderStatus)); }catch(e){}
+      _syncSeen.orderStatus=1; _maybeAutoResetSynced();
       _rerender();
     });
     fbDb.ref('orderAdded').on('value', function(snap){
@@ -2178,6 +2262,7 @@ function fbInit(){
       var v = snap.val();
       lastReset = (typeof v==='number' && v>0) ? v : 0;
       try{ localStorage.setItem(SK.lr, String(lastReset)); }catch(e){}
+      _syncSeen.lastReset=1; _maybeAutoResetSynced();
       _rerender();
     });
     fbDb.ref('orderNotes').on('value', function(snap){
@@ -2190,18 +2275,21 @@ function fbInit(){
       var v = snap.val() || {};
       backorderFlag = v;
       try{ localStorage.setItem(SK.bf, JSON.stringify(backorderFlag)); }catch(e){}
+      _syncSeen.backorderFlag=1; _maybeAutoResetSynced();
       _rerender();
     });
     fbDb.ref('reorderQty').on('value', function(snap){
       var v = snap.val() || {};
       reorderQty = v;
       try{ localStorage.setItem(SK.rq, JSON.stringify(reorderQty)); }catch(e){}
+      _syncSeen.reorderQty=1; _maybeAutoResetSynced();
       _rerender();
     });
     fbDb.ref('reorderStatus').on('value', function(snap){
       var v = snap.val() || {};
       reorderStatus = v;
       try{ localStorage.setItem(SK.rs, JSON.stringify(reorderStatus)); }catch(e){}
+      _syncSeen.reorderStatus=1; _maybeAutoResetSynced();
       _rerender();
     });
     fbDb.ref('auditSnooze').on('value', function(snap){
@@ -2226,7 +2314,16 @@ function fbInit(){
       var v = snap.val() || [];
       hist = Array.isArray(v) ? v : Object.values(v);
       try{ localStorage.setItem(SK.h, JSON.stringify(hist)); }catch(e){}
+      _syncSeen.hist=1; _maybeAutoResetSynced();
       _rerender();
+    });
+    // Build broadcast: force-reload older clients when a newer build signs in
+    // anywhere; announce this build if the cloud holds an older (or no) one.
+    fbDb.ref('appBuild').on('value', function(snap){
+      var cb=snap.val();
+      if(typeof cb!=='number') cb=0;
+      if(cb>APP_BUILD){ _onCloudBuild(cb); }
+      else if(cb<APP_BUILD){ try{ fbDb.ref('appBuild').set(APP_BUILD); }catch(e){} }
     });
     fbDb.ref('partEdits').on('value', function(snap){
       partEdits = snap.val() || {};
@@ -2476,10 +2573,11 @@ function doLogin(){
   applyFleetLabel();
   fbInit();                  // initialize Firebase (no-op after first time)
   fbAttachRoleListeners();   // listen for changes to this role's favorites/nicks/colors/groups
-  // Auto weekly reset (Monday 8am local). Delayed so Firebase has a chance to
-  // push us the latest `lastReset` first — avoids triggering a duplicate
-  // snapshot if another session already did the reset.
-  setTimeout(function(){ try{ maybeAutoReset(); }catch(e){ console.error('autoReset',e); } }, 1500);
+  // Auto weekly reset. No longer fired on a blind 1.5s delay — the reset is
+  // hard-gated on having RECEIVED the cloud's live data (see _resetSyncReady)
+  // and each Firebase listener re-triggers it as its node syncs in. This
+  // timer only matters for localStorage-only installs with no Firebase.
+  setTimeout(function(){ _maybeAutoResetSynced(); }, 1500);
   // Update banner — shown once per dismissal-version per user.
   setTimeout(function(){ try{ showUpdateBanner(); }catch(e){ console.error('banner',e); } }, 600);
   // Parts Received Audit reminder / escalation banner — shown after data + the
@@ -4616,8 +4714,38 @@ function saveSchedule(){
 // is still pending as a permanent "was a backorder" — that flag rides with
 // the item forever, even after it's eventually pulled and archived.
 function maybeAutoReset(){
+  // SYNC GATE — when Firebase is configured, refuse to evaluate the weekly
+  // reset until this session has received the cloud's live value for every
+  // node the reset reads and rewrites. The old 1.5s grace period was a race:
+  // a device whose sync ran long (or whose cache was stale/empty) could
+  // re-run a reset another device had already done.
+  if(!_resetSyncReady()) return false;
   var cutoff=currentResetCutoff();
   if(lastReset>=cutoff) return false;
+  // SKEW GUARD — the boundary above is computed in DEVICE-LOCAL time, so a
+  // device in another timezone (or with a wrong clock) computes a boundary a
+  // few hours off the one already processed: a UTC-7 device's "Monday 8am"
+  // lands 3h after the Eastern reset already recorded, which made it fire a
+  // full weekly reset 6 days early (seen 2026-08-16) — snapshotting the
+  // week's fresh items into the PREVIOUS week's order and pushing them to
+  // Parts Received mid-week. If the recorded reset is within 26h of this
+  // device's boundary it IS that boundary — already processed. Real weekly
+  // boundaries are 7 days apart, so this can never suppress a real reset.
+  if(lastReset && (cutoff-lastReset) < 26*3600*1000) return false;
+  // DUPLICATE GUARD — if History already holds a weekly-reset snapshot for
+  // (within 26h of) this same boundary, another device already ran this
+  // reset even though our lastReset marker lagged behind. Adopt the marker
+  // and do NOT snapshot or move anything.
+  for(var _di=0;_di<hist.length;_di++){
+    var _dh=hist[_di];
+    if(_dh && _dh.weekEnded && String(_dh.date||'').indexOf('weekly-reset')>=0 &&
+       Math.abs(cutoff-_dh.weekEnded) < 26*3600*1000){
+      if(cutoff>lastReset) lastReset=cutoff;
+      try{ localStorage.setItem(SK.lr, String(lastReset)); }catch(e){}
+      if(fbReady){ try{ fbDb.ref('lastReset').set(lastReset); }catch(e){} }
+      return false;
+    }
+  }
   // The week's order = every item that ISN'T already a carried-over "not
   // received from previous week" item. These snapshot to History (statuses
   // preserved) for the Friday Parts Received Audit, then clear from the active
