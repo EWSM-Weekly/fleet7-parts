@@ -4,6 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Fleet 6 Parts Order — Evolution Well Services</title>
+<!-- Installable app (PWA): manifest + icons cut from Flame Logo.ico. The same
+     files ship to every fork; a fleet can rename the app by editing
+     manifest.webmanifest (the daily sync keeps their copy, like firebase-config.js). -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#0f1115">
+<meta name="application-name" content="EWS Parts Order">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="EWS Parts">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/7.0.0/fuse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="firebase-config.js"></script>
@@ -120,6 +133,59 @@ input,select{outline:none;font-family:inherit;}
 .tab-btn:hover:not(.active){color:var(--text);}
 .tbadge{background:var(--border);border-radius:2px;padding:1px 6px;font-size:9px;font-weight:800;color:var(--muted);}
 .tab-btn.active .tbadge{background:var(--teal-dim);color:var(--teal);}
+/* ── OTHER FLEETS view (Master tab toggle) ── */
+.net-toggle{display:inline-flex;gap:4px;margin-bottom:14px;background:var(--card);border:1px solid var(--border);border-radius:3px;padding:4px;max-width:100%;}
+.net-tg{padding:8px 16px;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);background:transparent;border:none;border-radius:2px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:all .15s;font-family:inherit;}
+.net-tg.active{background:var(--teal-dim);color:var(--teal);}
+.net-tg:hover:not(.active){color:var(--text);}
+.net-tg .tbadge{font-size:9px;}
+.net-tg.active .tbadge{background:var(--teal);color:#fff;}
+#tab-browse.net-on>.search-row,#tab-browse.net-on>.sec-hd,#tab-browse.net-on>#bList,#tab-browse.net-on>#bPag{display:none !important;}
+#netPanel{display:none;}
+#tab-browse.net-on #netPanel{display:block;}
+.net-hd{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:14px;padding:14px 16px;background:var(--card);border:1px solid var(--border);border-left:3px solid var(--teal);border-radius:2px;flex-wrap:wrap;}
+.net-hd-l{flex:1;min-width:240px;}
+.net-hd-r{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.net-title{font-size:13px;font-weight:800;color:var(--text);margin-bottom:4px;}
+.net-sub{font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:10px;}
+.net-chips{display:flex;gap:6px;flex-wrap:wrap;}
+.net-chip{font-size:10px;color:var(--muted);background:var(--nav);border:1px solid var(--border);border-radius:2px;padding:3px 8px;}
+.net-chip strong{color:var(--text);margin-right:4px;}
+.net-chip-err{border-color:rgba(217,95,95,.5);color:#e08a8a;}
+.net-chip-wait{opacity:.7;}
+.net-link{background:none;border:none;color:var(--teal);font-size:11px;font-weight:700;cursor:pointer;text-decoration:underline;font-family:inherit;padding:4px 6px;}
+.net-sec{margin-bottom:10px;flex-direction:column;align-items:flex-start;gap:2px;}
+.net-sec-t{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;display:flex;align-items:center;gap:8px;}
+.net-sec-s{font-size:11px;color:var(--muted2);}
+.net-count{background:var(--teal-dim);color:var(--teal);border-radius:2px;padding:1px 7px;font-size:10px;}
+.net-empty{padding:18px 16px;color:var(--muted);font-size:12px;background:var(--card);border:1px dashed var(--border);border-radius:2px;}
+.net-card .pdesc{white-space:normal;text-overflow:clip;line-height:1.4;}
+.net-onfleets{color:var(--teal);font-weight:700;}
+.net-hiddenrow{opacity:.55;}
+.net-hiddenchip{background:rgba(140,140,140,.15);border:1px solid rgba(140,140,140,.4);color:var(--muted);border-radius:2px;padding:0 6px;font-size:10px;}
+.net-requested{font-size:11px;font-weight:700;color:#3f9bd6;white-space:nowrap;}
+.net-mini{padding:7px 10px !important;font-size:10px !important;}
+.net-mm{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;}
+.net-side{background:var(--nav);border:1px solid var(--border);border-radius:2px;padding:8px 10px;}
+.net-side-ours{border-color:rgba(30,180,116,.45);}
+.net-lbl{font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.net-txt{font-size:12px;color:var(--text);font-weight:600;line-height:1.4;}
+.net-req-hd{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin:0 0 10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.net-req-sub{font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted2);flex-basis:100%;}
+#catReqPanel{margin-bottom:18px;padding-bottom:16px;border-bottom:1px dashed var(--border);}
+@media(max-width:620px){
+  .net-toggle{display:flex;width:100%;}
+  .net-tg{flex:1;justify-content:center;padding:10px 6px;font-size:10px;letter-spacing:.5px;position:relative;}
+  .net-tg .tbadge{position:static;margin-left:0;height:auto;line-height:1.4;padding:1px 6px;border:none;border-radius:9px;}
+  .net-hd{padding:12px;}
+  .net-card .pact{flex-wrap:wrap;}
+}
+/* ── 🖼 Pics pill — opens Google Images for the part in a new tab ── */
+.pimg-btn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;flex-shrink:0;text-decoration:none;background:rgba(150,150,175,0.10);border:1px solid rgba(150,150,175,0.35);color:var(--muted);border-radius:2px;font-size:16px;line-height:1;cursor:pointer;vertical-align:middle;font-family:inherit;transition:color .12s,border-color .12s,background .12s,transform .2s;}
+.pimg-btn:hover{color:var(--teal);border-color:var(--teal);background:var(--teal-dim);transform:scale(1.12);}
+.ometa .pimg-btn,.pmeta .pimg-btn{width:24px;height:22px;font-size:13px;margin-left:2px;}
+@media(max-width:620px){.pimg-btn{width:40px;height:40px;font-size:20px;} .ometa .pimg-btn{width:32px;height:30px;font-size:16px;}}
+
 .tab-content{display:none;} .tab-content.active{display:block;}
 
 /* ── SEARCH ── */
@@ -201,7 +267,7 @@ input,select{outline:none;font-family:inherit;}
   -moz-appearance:textfield;appearance:textfield;}
 .qi::-webkit-inner-spin-button,.qi::-webkit-outer-spin-button{-webkit-appearance:none;appearance:none;margin:0;}
 .qi:focus{border-color:var(--teal);}
-.fb{width:28px;height:28px;border-radius:2px;background:transparent;font-size:16px;transition:transform .2s;line-height:1;}
+.fb{width:34px;height:34px;border-radius:2px;background:transparent;font-size:21px;transition:transform .2s;line-height:1;}
 .fb:hover{transform:scale(1.2);}
 .ab{padding:7px 12px;border-radius:2px;font-size:11px;font-weight:700;background:var(--teal);color:#fff;text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;transition:all .15s;}
 .ab:hover{background:var(--teal-d);}
@@ -500,7 +566,7 @@ input,select{outline:none;font-family:inherit;}
   /* bigger tap targets — qty controls, star, add, remove, paginate */
   .qb{width:36px;height:36px;font-size:18px;}
   .qi{width:50px;font-size:14px;padding:6px 4px;}
-  .fb{width:34px;height:34px;font-size:18px;}
+  .fb{width:40px;height:40px;font-size:23px;}
   .ab{padding:10px 14px;font-size:12px;}
   .rm{padding:9px 12px;font-size:13px;}
   .pb{width:38px;height:38px;font-size:13px;}
@@ -560,8 +626,10 @@ input,select{outline:none;font-family:inherit;}
   .fav-desc-input{width:100%;font-size:15px;padding:10px 12px;font-weight:600;}
   .fav-meta{padding-left:0;font-size:11px;flex-wrap:wrap;gap:6px 10px;}
   /* ROW 2 (middle): color | star | qty — qty pushed to the right */
-  .fav-card-inner > .fav-color-select{order:0;width:110px;padding:8px 10px;font-size:12px;}
-  .fav-card-inner > .fb{order:0;}
+  .fav-card-inner > .fav-color-select{order:0;width:96px;padding:8px 8px;font-size:12px;}
+  .fav-card-inner > .fb{order:0;width:36px;height:36px;font-size:21px;}
+  .fav-card-inner > .pimg-btn{order:0;width:34px;height:34px;font-size:17px;}
+  .fav-card-inner .qb{width:34px;height:34px;}
   .fav-card-inner > .qwrap{order:0;margin-left:auto;}
   /* ROW 3 (bottom): full-width Add as the primary action */
   .fav-card-inner > .ab{flex:0 0 100% !important;order:1;padding:14px;font-size:13px;}
@@ -970,6 +1038,20 @@ html,body{
       <span style="font-size:22px;color:#1eb474;opacity:.85;flex:0 0 auto;">›</span>
     </a>
   </div>
+
+  <!-- Install as an app — only shown where the browser can actually do it
+       (Chrome/Edge once the install prompt is available; iPhone/iPad always,
+       with Share → Add to Home Screen steps). Hidden inside the installed app. -->
+  <div id="pwaInstallCard" style="max-width:420px;margin:10px auto 0;display:none;">
+    <button type="button" onclick="installApp()" style="width:100%;display:flex;align-items:center;gap:12px;padding:13px 15px;background:linear-gradient(180deg,rgba(47,140,202,.12),rgba(47,140,202,.05));border:1px solid rgba(47,140,202,.38);border-radius:14px;color:#e8edf2;cursor:pointer;text-align:left;font-family:inherit;-webkit-tap-highlight-color:transparent;">
+      <span style="display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;background:rgba(47,140,202,.16);flex:0 0 auto;"><img src="icon-192.png" alt="" style="width:26px;height:26px;" onerror="this.style.display='none'"></span>
+      <span style="flex:1;min-width:0;">
+        <span style="display:block;font-weight:800;font-size:15px;" id="pwaInstallTitle">Install on this PC</span>
+        <span style="display:block;font-size:12px;opacity:.64;margin-top:1px;" id="pwaInstallSub">Own window, Start-menu &amp; desktop icon, opens offline with the last-synced lists</span>
+      </span>
+      <span style="font-size:22px;color:#3f9bd6;opacity:.85;flex:0 0 auto;">›</span>
+    </button>
+  </div>
 </div>
 
 <!-- APP -->
@@ -1018,7 +1100,7 @@ html,body{
       <button class="tab-btn" onclick="switchTab('browse')" data-tab="browse"><span class="ticon">📋</span><span class="tlabel" data-m="Master">Master List</span></button>
       <button class="tab-btn" onclick="switchTab('favorites')" data-tab="favorites"><span class="ticon">⭐</span><span class="tlabel" data-m="Favorites">Favorites</span><span class="tbadge tb-zero" id="fBadge">0</span></button>
       <button class="tab-btn" onclick="switchTab('history')" data-tab="history"><span class="ticon">📜</span><span class="tlabel" data-m="History">History</span></button>
-      <button class="tab-btn" id="adminTab" style="display:none" onclick="switchTab('admin')" data-tab="admin"><span class="ticon">🔐</span><span class="tlabel" data-m="Admin">Admin</span></button>
+      <button class="tab-btn" id="adminTab" style="display:none" onclick="switchTab('admin')" data-tab="admin"><span class="ticon">🔐</span><span class="tlabel" data-m="Admin">Admin</span><span class="tbadge tb-zero" id="aBadge">0</span></button>
     </div>
 
     <!-- ORDER TAB -->
@@ -1058,6 +1140,10 @@ html,body{
 
     <!-- BROWSE TAB -->
     <div class="tab-content" id="tab-browse">
+      <div class="net-toggle" role="tablist" aria-label="Master list view">
+        <button type="button" class="net-tg active" id="netTgOurs" onclick="setBrowseView('ours')">📋 Our list</button>
+        <button type="button" class="net-tg" id="netTgNet" onclick="setBrowseView('net')" title="Parts the other fleets have added that aren't on our list">🌐 Other fleets <span class="tbadge tb-zero" id="netBadge">0</span></button>
+      </div>
       <div class="search-row">
         <div class="sbox">
           <span class="sico">🔍</span>
@@ -1072,6 +1158,7 @@ html,body{
       <div class="sec-hd"><div id="bCount" style="font-size:11px;color:var(--muted);letter-spacing:.5px;"></div></div>
       <div id="bList" class="parts-list"></div>
       <div class="pag" id="bPag"></div>
+      <div id="netPanel"></div>
     </div>
 
     <!-- FAVORITES TAB -->
@@ -1225,6 +1312,7 @@ html,body{
       </div>
       <div class="acard">
         <h3>📦 Master Parts List Management</h3>
+        <div id="catReqPanel" style="display:none"></div>
         <div id="customPartsStatus" style="font-size:12px;color:var(--muted);margin-bottom:14px;padding:10px 12px;background:var(--nav);border-radius:2px;border:1px solid var(--border);"></div>
 
         <!-- Upload Excel -->
@@ -2029,7 +2117,7 @@ const SK={o:'f6_ord',k:'f6_kp',h:'f6_hi',b:'f6_ob',s:'f6_os',a:'f6_oa',lr:'f6_lr
 // client that hears a newer build force-reloads to pull the new file from
 // GitHub Pages — one sign-in on the new build converges the whole fleet
 // without anyone hand-refreshing. See the appBuild listener in fbInit().
-const APP_BUILD=2026081601;
+const APP_BUILD=2026082104;
 // Arriving on a cache-busted URL (?b=...) from a forced reload: clean the
 // address bar back to the bare path.
 try{ if(location.search.indexOf('?b=')===0) history.replaceState(null,'',location.pathname); }catch(e){}
@@ -2325,6 +2413,23 @@ function fbInit(){
       if(cb>APP_BUILD){ _onCloudBuild(cb); }
       else if(cb<APP_BUILD){ try{ fbDb.ref('appBuild').set(APP_BUILD); }catch(e){} }
     });
+    // Cross-fleet catalog requests / hidden parts / accepted mismatches (see OTHER FLEETS).
+    fbDb.ref('catalogRequests').on('value', function(snap){
+      var v=snap.val()||{}; var before=Object.keys(catalogRequests||{}).length;
+      catalogRequests={}; Object.keys(v).forEach(function(k){ if(v[k] && v[k].oracle) catalogRequests[k]=v[k]; });
+      var after=Object.keys(catalogRequests).length;
+      if(_netReqSynced && after>before && user && user.role==='Administrative'){ try{ toast('📥 New request to add a part — Admin → Requests from the crews'); }catch(e){} }
+      _netReqSynced=true;
+      try{ renderCatalogRequests(); renderNetwork(); netUpdateBadge(); }catch(e){}
+    });
+    fbDb.ref('catalogDismissed').on('value', function(snap){
+      catalogDismissed=snap.val()||{};
+      try{ renderNetwork(); netUpdateBadge(); }catch(e){}
+    });
+    fbDb.ref('catalogMismatchOk').on('value', function(snap){
+      catalogMismatchOk=snap.val()||{};
+      try{ renderNetwork(); netUpdateBadge(); }catch(e){}
+    });
     fbDb.ref('partEdits').on('value', function(snap){
       partEdits = snap.val() || {};
       try{ localStorage.setItem('f6_part_edits', JSON.stringify(partEdits)); }catch(e){}
@@ -2362,6 +2467,8 @@ function fbInit(){
       _rerender();
       if(typeof updateCustomPartsStatus==='function') updateCustomPartsStatus();
       _catMigParts=true; if(typeof runCategoryMigration==='function') runCategoryMigration();
+      // Cross-fleet share: re-publish only if what we'd share actually changed.
+      setTimeout(function(){ try{ if(typeof publishCatalogShare==='function') publishCatalogShare(false); if(typeof netUpdateBadge==='function') netUpdateBadge(); if(typeof renderNetwork==='function' && _netView==='net') renderNetwork(); }catch(e){} }, 4000);
     });
     fbDb.ref('customPartsBackup').on('value', function(snap){
       // Mirror the backup record locally so any admin in any session can
@@ -2584,6 +2691,8 @@ function doLogin(){
   // weekly reset have settled, then refreshed every few minutes so the
   // escalation tiers advance without a page reload.
   setTimeout(function(){ try{ renderAuditBanner(); }catch(e){ console.error('auditBanner',e); } }, 1800);
+  // Other fleets: quietly check what they've added so the Master-tab toggle shows a count.
+  setTimeout(function(){ try{ if(typeof refreshNetwork==='function') refreshNetwork(false); }catch(e){} }, 6000);
   if(!window._auditBannerTimer){ window._auditBannerTimer=setInterval(function(){ try{ renderAuditBanner(); }catch(e){} }, 5*60*1000); }
   // One-time heads-up if an admin edited any of this user's favorited parts.
   // Delayed so Firebase has time to sync favorites + edit notices first.
@@ -2644,7 +2753,7 @@ function switchTab(t){
   document.querySelectorAll('.tab-content').forEach(c=>c.classList.toggle('active',c.id==='tab-'+t));
   if(t==='order')renderOrder();
   if(t==='received')renderReceived();
-  if(t==='browse'){document.getElementById('bDept').value='';rstBrowse();}
+  if(t==='browse'){document.getElementById('bDept').value='';rstBrowse();if(typeof setBrowseView==='function') setBrowseView('ours');}
   if(t==='favorites'){document.getElementById('fDept').value='';renderFavs();}
   if(t==='history')renderHistory();
   if(t==='admin')renderAdmin();
@@ -3400,7 +3509,7 @@ function _orderItemCard(oracle, qty, carry, reo){
         <div class="odot" style="background:${DC[p[4]]}"></div>
         <div class="oinfo">
           <div class="odesc"><span class="bo-age" title="First requested ${orderedOn}">⏱ ${age}</span> ${isAdmin ? statusSegHtml(oracle) : badge} ${e(p[2])}</div>
-          <div class="ometa">${DI[p[4]]} ${DN[p[4]]} &nbsp;·&nbsp; Oracle: ${p[0]} &nbsp;·&nbsp; SAGE: ${p[1]} &nbsp;·&nbsp; Qty: ${qty} ${p[3]} &nbsp;·&nbsp; First requested ${orderedOn}${(reorderQty[oracle]||0)>0?` &nbsp;·&nbsp; <span class="stbadge stbadge-pend" title="Additional quantity requested again this week — it's on the Current Order tab as its own new request">🔁 +${reorderQty[oracle]} requested this week</span>`:''}</div>
+          <div class="ometa">${DI[p[4]]} ${DN[p[4]]} &nbsp;·&nbsp; Oracle: ${p[0]} &nbsp;·&nbsp; SAGE: ${p[1]} &nbsp;·&nbsp; Qty: ${qty} ${p[3]} &nbsp;·&nbsp; First requested ${orderedOn} ${imgBtnHtml(oracle)}${(reorderQty[oracle]||0)>0?` &nbsp;·&nbsp; <span class="stbadge stbadge-pend" title="Additional quantity requested again this week — it's on the Current Order tab as its own new request">🔁 +${reorderQty[oracle]} requested this week</span>`:''}</div>
         </div>
         <div class="recv-cluster">
           <div class="qwrap"><button class="qb" onclick="recvTick('${oracle}',-1)">−</button><input id="recvq-${oracle}" class="qi" type="number" value="${stagedN}" min="1" max="${qty}" /><button class="qb" onclick="recvTick('${oracle}',1)">+</button></div>
@@ -3433,7 +3542,7 @@ function _orderItemCard(oracle, qty, carry, reo){
     <div class="odot" style="background:${DC[p[4]]}"></div>
     <div class="oinfo">
       <div class="odesc">${badge} ${e(p[2])}</div>
-      <div class="ometa">${DI[p[4]]} ${DN[p[4]]} &nbsp;·&nbsp; Oracle: ${p[0]} &nbsp;·&nbsp; SAGE: ${p[1]} &nbsp;·&nbsp; UOM: ${p[3]}${reoChip}</div>
+      <div class="ometa">${DI[p[4]]} ${DN[p[4]]} &nbsp;·&nbsp; Oracle: ${p[0]} &nbsp;·&nbsp; SAGE: ${p[1]} &nbsp;·&nbsp; UOM: ${p[3]} ${imgBtnHtml(oracle)}${reoChip}</div>
     </div>
     <div class="qwrap">
       <button class="qb" onclick="${fnAdj}('${oracle}',-1)">−</button>
@@ -3796,6 +3905,136 @@ function highlight(text, query, corrections){
   return safeText.replace(subRe,'<mark>$1</mark>');
 }
 
+// ── PART PICTURES (Google Images, new tab) ──────────────────────────
+// Oracle descriptions are terse "NOUN, TYPE, SPEC, SPEC, … PN X" strings.
+// A raw description makes a poor image query (specs drown the noun), so
+// build a short one that finds the real item: brand + noun phrase +
+// manufacturer part number when the description carries one. Google drops
+// tokens it can't match, so "RELAY SAFETY PHOENIX CONTACT 2963763" still
+// shows relays even when the PN is unknown to the index.
+var IMG_BRANDS=['PHOENIX CONTACT','ALLEN BRADLEY','ALLEN-BRADLEY','SQUARE D','BAKER HUGHES','GARDNER DENVER','DET-TRONICS','ITT CANNON','TE CONNECTIVITY','BOSCH REXROTH','SUN HYDRAULICS','THOMAS & BETTS','CROUSE-HINDS','CROUSE HINDS','GENERAL CABLE','MP FILTRI','CO-AX','SIEMENS','ABB','ROSEMOUNT','FISHER','ALTRONIX','PARKER','SWAGELOK','CATERPILLAR','CUMMINS','ALLISON','SPM','WEIR','KERR','VULCAN','KENNAMETAL','KENNAFLOW','HALLIBURTON','EATON','SCHNEIDER','ROCKWELL','TURCK','PEPPERL','ENDRESS','EMERSON','HONEYWELL','MOOG','WOODWARD','DONALDSON','FLEETGUARD','BALDWIN','WIX','HYDAC','REXROTH','DANFOSS','VICKERS','DIXON','BRADY','LOCTITE','PERMATEX','DEWALT','MILWAUKEE','MAKITA','SNAP-ON','PROTO','KLEIN','PANDUIT','HUBBELL','APPLETON','KILLARK','BURNDY','AMPHENOL','HARTING','DEUTSCH','MOLEX','LAPP','BELDEN','SOUTHWIRE','VICTAULIC','GATES','GOODYEAR','TIMKEN','SKF','NTN','FAG','FALK','LOVEJOY','BROWNING','BALDOR','LEESON','WEG','TECO','LINCOLN','MILLER','ESAB','HYPERTHERM','GRACO','ENERPAC','SIMPLEX','NORTON','3M','BRENNAN','AEROQUIP','WEATHERHEAD','STAUFF','FMC','TWIN DISC','FUNK','KUBOTA','DEERE','JOHN DEERE','PERKINS','KOHLER','BRIGGS','HONDA','YANMAR','DEUTZ','MTU','DETROIT','LM2500','TRANE','CARRIER','COPELAND','DAYTON','LITTLE GIANT','GOULDS','GRUNDFOS','FLOWSERVE','DURCO','CAMERON','SCHLUMBERGER','NATIONAL OILWELL','OTECO','WKM','DEMCO','PENTAIR','ASCO','BURKERT','NUMATICS','NORGREN','SMC','FESTO','BIMBA','CLIPPARD','HUMPHREY','MAC VALVES','IFM','SICK','OMRON','KEYENCE','WAGO','WEIDMULLER','WEIDMÜLLER','ENTRELEC','MERSEN','BUSSMANN','LITTELFUSE','FERRAZ','MARATHON','HAMMOND','HOFFMAN','RITTAL','SAGINAW','ADALET','NVENT','RAYCHEM','CHROMALOX','WATLOW','DWYER','ASHCROFT','WIKA','NOSHOK','WINTERS','MCDANIEL','MURPHY','FW MURPHY','KIMRAY','BARKSDALE','UNITED ELECTRIC','MERCOID','ROSEMOUNT','YOKOGAWA','FOXBORO','MICRO MOTION','KROHNE','MAGNETROL','VEGA','SIEMENS MILLTRONICS','BENTLY NEVADA','METRIX','WILCOXON'];
+var IMG_UNIT_RE=/^(\d+[\d\/.,-]*)(IN|FT|MM|CM|M|KV|V|VDC|VAC|A|MA|KA|AMP|AMPS|HP|KW|W|RPM|GPM|PSI|PSIG|BAR|LB|LBS|KG|OZ|GA|AWG|TPI|HZ|F|C|DEG|K|MIL|PT|QT|GAL|CC|ML|L|UNC|UNF|NPT|NPTF|FNPT|MNPT|JIC|SAE|ORB|ORFS|BSP|BSPP|PH|POLE|P|WAY|POS|STG|ID|OD|AF|X|W|H|D|MICRON|UM|MCG)?$/;
+var IMG_SPEC_LABELS=/^(LENGTH|WIDTH|HEIGHT|DEPTH|THICK|THICKNESS|DIAMETER|DIA|RANGE|TEMP|TEMPERATURE|MAX|MIN|RATING|VOLTAGE|CURRENT|OUTPUT|INPUT|WEIGHT|COLOR|COLOUR|FINISH|MATERIAL|SCHEDULE|SCH|CLASS|SIZE|FITS|INCLUDES|APPROX|SUPPLIED|PACKAGE|PACKAGING|CARTON|QTY|QUANTITY|UNIT|CAPACITY|PRESSURE|FLOW|SPEED|POWER|FREQUENCY|CONSTRUCTION|CONFIGURATION|DESIGN|MOUNT|MOUNTING|THREAD|THREADED|CONNECTION|COMPATIBLE|COMPATIBILITY|DESIGNED|FABRICATED|TRACEABLE|FIELD|USED|SYSTEM|SYSTEMS|EQUIPMENT|COMPONENT|REPLACEMENT|SPARE|COMPLETE|ASSEMBLY)$/;
+var IMG_SKIP_CODES=/^(EWS|ENG|TSI|ASTM|ANSI|API|ISO|SAE|DIN|NEMA|IEC|UL|CSA|AISI|MIL|NSCWP|ASME)/;
+var IMG_SKIP_WORDS=/^(AND|OR|FOR|WITH|W\/|W\/O|THE|OF|TO|PER|BY|IN|ON|AT|TYPE|STYLE|SERIES|GRADE|SIZE|USE|USED|DUTY|OEM|PN|P\/N|MODEL|MDL|NO|MFG|MFR|CAT|ORDER|CODE|PART|NUMBER|REF|ITEM|ASSY|ASSEMBLY|KIT|SET|EA|EACH|PK|PACK|BOX|ROLL|HEAVY|INDUSTRIAL|GENERAL|PURPOSE|APPLICATION|SERVICE|COMPATIBLE|SUITABLE|RATED|STANDARD|STD|NEW|REFURBISHED|MISC|MISCELLANEOUS|ETC|TBD|VARIOUS|ASSORTED)$/;
+function _imgClean(s){
+  // Unicode dashes/hyphens -> '-', other non-ASCII + '?' artifacts -> space.
+  return String(s||'').replace(/[\u2010-\u2015\u2212]/g,'-').replace(/[^\x20-\x7E]+|\?/g,' ').replace(/\s+/g,' ').trim().toUpperCase();
+}
+function _imgIsSpecToken(t){
+  if(!t) return true;
+  if(/^\d/.test(t)) return true;                 // 15KV, 3/4, 2-POLE, 0-1500
+  if(IMG_UNIT_RE.test(t)) return true;
+  if(/^[A-Z]\d/.test(t) && t.length<=6) return true; // A105, CF8M, S00, 3P-ish grades
+  if(IMG_SKIP_WORDS.test(t)) return true;
+  if(t.length<2) return true;
+  return false;
+}
+function _imgCodeLike(t){
+  // A manufacturer-style code: 5+ chars, mixes letters AND digits, isn't a
+  // dimension/spec or a known internal/standards prefix.
+  if(!t || t.length<5 || t.length>24) return false;
+  if(!/[A-Z]/.test(t) || !/\d/.test(t)) return false;
+  if(IMG_UNIT_RE.test(t)) return false;
+  if(IMG_SKIP_CODES.test(t)) return false;
+  if(/^\d+(X\d+)+$/.test(t)) return false;       // 10X6X4
+  if(/^[A-Z]{1,2}\d{1,3}$/.test(t)) return false; // A105, S00
+  return /^[A-Z0-9][A-Z0-9\-\/.]*[A-Z0-9]$/.test(t);
+}
+function imgQueryFor(desc){
+  var raw=_imgClean(desc);
+  if(!raw) return '';
+  // Brand — anywhere in the text incl. parentheticals; longest names first.
+  var brand='';
+  for(var i=0;i<IMG_BRANDS.length;i++){
+    var b=IMG_BRANDS[i];
+    var re=new RegExp('(^|[^A-Z])'+b.replace(/[-\/\\^$*+?.()|[\]{}]/g,'\\$&')+'($|[^A-Z])');
+    if(re.test(raw)){ brand=b; break; }
+  }
+  // Part number — explicit markers first (PN / P/N / OEM PN / CAT NO / MODEL).
+  var pn='';
+  var pnRe=/(?:^|[\s,(])(?:OEM\s+)?(?:PN|P\/N|PART\s*(?:NO\.?|NUMBER|#)|CAT(?:ALOG)?\s*(?:NO\.?|#)|ORDER\s*CODE|MODEL|MDL)[:#.\s]+([A-Z0-9][A-Z0-9\-\/.]*)/g, m;
+  var cands=[];
+  while((m=pnRe.exec(raw))!==null){ cands.push({k:m[0].replace(/^[\s,(]+/,'').split(/[\s:#.]+/)[0], v:m[1].replace(/[.,;:)]+$/,'')}); }
+  var pick=null;
+  ['PN','P/N','OEM','PART','CAT','CATALOG','ORDER','MODEL','MDL'].some(function(k){
+    pick=cands.find(function(c){return c.k===k && c.v.length>=3 && !IMG_SKIP_CODES.test(c.v);}); return !!pick;
+  });
+  if(pick) pn=pick.v;
+  // Noun phrase — segment 1 (Oracle puts the noun first), plus segment 2 when
+  // it reads as a type rather than a spec ("VALVE, BUTTERFLY WA-LUG, 12 IN").
+  var body=raw.replace(/\([^)]*\)/g,' ');
+  var segs=body.split(',').map(function(s){return s.trim();}).filter(Boolean);
+  var nounWords=[];
+  function takeWords(seg, max){
+    var out=[];
+    seg.split(/\s+/).forEach(function(t){
+      t=t.replace(/^[^A-Z0-9]+|[^A-Z0-9\-\/.]+$/g,'');
+      if(out.length>=max) return;
+      if(_imgIsSpecToken(t)) return;
+      if(/\d/.test(t)) return;                    // specs + codes (codes handled separately)
+      if(brand && brand.indexOf(t)>=0) return;    // brand added on its own
+      if(nounWords.indexOf(t)>=0 || out.indexOf(t)>=0) return;
+      out.push(t);
+    });
+    return out;
+  }
+  if(segs.length){ nounWords=takeWords(segs[0],3); }
+  if(segs.length>1 && nounWords.length<3){
+    var s2=segs[1];
+    if(!/^\d/.test(s2)){ nounWords=nounWords.concat(takeWords(s2,3-nounWords.length)); }
+  }
+  // Still thin? Borrow a short, purely-alphabetic type/material segment
+  // further in ("VALVE, BALL, BRASS"; "CABLE, …, MEDIUM VOLTAGE SERVICE")
+  // but never spec labels ("LENGTH 125FT", "SCHEDULE 80").
+  for(var k=2;k<Math.min(segs.length,8) && nounWords.length<2;k++){
+    var sk=segs[k];
+    if(/\d/.test(sk)) continue;
+    var w=takeWords(sk,3).filter(function(t){return !IMG_SPEC_LABELS.test(t);});
+    if(!w.length || w.length>3) continue;
+    nounWords=nounWords.concat(w.slice(0,2));
+  }
+  // No explicit PN marker: fall back to the first code-like token in the
+  // first two segments (PLUNGER VP00187, ALTRONIX/VERTX TV2BPLN).
+  if(!pn){
+    var pool=segs.slice(0,3).join(' ').split(/[\s\/]+/);
+    for(var j=0;j<pool.length;j++){
+      var t=pool[j].replace(/^[^A-Z0-9]+|[^A-Z0-9\-\/.]+$/g,'');
+      if(_imgCodeLike(t) && !(brand && brand.indexOf(t)>=0)){ pn=t; break; }
+    }
+  }
+  var parts=[];
+  if(brand) parts.push(brand);
+  parts=parts.concat(nounWords);
+  if(pn && parts.indexOf(pn)<0) parts.push(pn);
+  var q=parts.join(' ').trim();
+  return q || raw.split(',')[0].trim().slice(0,60);
+}
+function partImgUrl(oracle){
+  var p=(typeof gp==='function')?gp(oracle):null;
+  var q=imgQueryFor(p?p[2]:'');
+  if(!q) return '';
+  return 'https://www.google.com/search?tbm=isch&q='+encodeURIComponent(q);
+}
+// Rendered as a real link (target=_blank) rather than window.open(): a link
+// activation is never popup-blocked, works in every mobile browser, and
+// long-press gives "open in new tab / copy link" for free. stopPropagation
+// keeps clickable cards (admin comment cards) from reacting to the tap.
+function openPartImages(ev, oracle){
+  if(ev && ev.stopPropagation) ev.stopPropagation();
+  var u=partImgUrl(oracle);
+  if(u) window.open(u,'_blank');
+}
+function imgBtnHtml(oracle, descOverride){
+  var desc=descOverride;
+  if(desc==null){ var p=(typeof gp==='function')?gp(oracle):null; desc=p?p[2]:''; }
+  var q=imgQueryFor(desc);
+  if(!q) return '';
+  var tip='See pictures of this part \u2014 Google Images for \u201c'+q.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'\u201d (opens a new tab)';
+  var href='https://www.google.com/search?tbm=isch&q='+encodeURIComponent(q);
+  return '<a class="pimg-btn" href="'+href.replace(/&/g,'&amp;')+'" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" title="'+tip+'" aria-label="Pictures of this part (Google Images)">\ud83d\uddbc</a>';
+}
+
 function pCard(p,q='',corrections){
   const o=p[0],io=!!order[o],iv=!!favs[o];
   const descHtml=highlight(p[2].length>130?p[2].slice(0,130)+'…':p[2], q, corrections);
@@ -3816,7 +4055,7 @@ function pCard(p,q='',corrections){
       </div>
     </div>
     <div class="pact">
-      <button class="fb" onclick="togF('${o}',this)">${iv?'⭐':'☆'}</button>
+      ${imgBtnHtml(o)}<button class="fb" onclick="togF('${o}',this)">${iv?'⭐':'☆'}</button>
       <div class="qwrap">
         <button class="qb" onclick="aT('${o}',-1)">−</button>
         <input class="qi" id="tq_${o}" type="number" value="${order[o]||1}" min="1" />
@@ -4436,6 +4675,7 @@ function closeWalkthrough(){
 // Re-sync the Current Weekly Order tab with this week's audit results.
 // ── ADMIN ──────────────────────────────────────────────────
 function renderAdmin(){
+  if(typeof renderCatalogRequests==='function') renderCatalogRequests();
   // Refresh catalog status so the Export/Restore buttons render correctly
   // and reflect the current backup timestamp every time the admin tab opens.
   if(typeof updateCustomPartsStatus==='function') updateCustomPartsStatus();
@@ -5638,6 +5878,8 @@ function refreshEventLog() {
     'SNOOZE':  { color:'#c9842a', label:'😴 Audit snoozed' },
     'NOTE':    { color:'#2f8cca', label:'📝 Note' },
     'LATEADD': { color:'#1eb474', label:'➕ Late add' },
+    'CATREQ':  { color:'#2f8cca', label:'🙋 Asked to add part' },
+    'CATADD':  { color:'#1eb474', label:'🌐 Added from other fleet' },
   };
   var rows = '';
   arr.slice().reverse().forEach(function(ev){
@@ -5804,11 +6046,20 @@ var HELP_CONTENT = {
           "Click any entry to re-run it. Hit the <code>×</code> to remove a single entry.",
         ]
       },
+      { heading: "🌐 Other fleets",
+        items: [
+          "The <strong>Other fleets</strong> toggle at the top shows parts the other fleets have added to <em>their</em> master lists that aren't on ours — Oracle #, description, and which fleets carry it.",
+          "See one we should have? Tap <strong>🙋 Ask admin to add</strong> and it lands on the admins' queue. Admins can add it straight from the view, or hide parts that don't apply to {FLEET}.",
+          "<strong>Same Oracle #, different description</strong> lists parts where another fleet describes the same Oracle # differently — an easy place to catch list errors. Admins can take their wording or keep ours.",
+          "Only catalog rows travel between fleets. Orders, history, receipts and the event log stay private to each fleet.",
+        ]
+      },
       { heading: "Working with results",
         items: [
           "Tap <strong>☆</strong> to favorite a part, <strong>+ Add</strong> to put it in the order.",
           "The classification dropdown on each card lets you fix the item type. <strong>That change applies for everyone</strong> — use it carefully.",
           "Filter resets to <em>All Classifications</em> on every tab open.",
+          "Tap the <strong>🖼</strong> icon beside the star on any part to open <strong>Google Images</strong> in a new tab. The search is built from the part's noun, brand and manufacturer part number (when the description has one) — a quick way to check it's the item you mean.",
         ]
       }
     ]
@@ -5877,6 +6128,11 @@ var HELP_CONTENT = {
         items: [
           "The admin worklist shows this week's <strong>pending</strong> requests. Each has a <strong>📤 Submit</strong> button — click it as you place the order in Oracle and the badge flips to <strong>✓ Submitted</strong> so everyone sees it's handled. Click again (<strong>↩ Revert</strong>) to undo.",
           "The status bar up top tallies pending / submitted / received / not-received, plus the last reset time.",
+        ]
+      },
+      { heading: "📥 Requests from the crews",
+        items: [
+          "When someone asks for a part they spotted under <strong>Master List → Other fleets</strong>, it shows at the top of Master Parts List Management. <strong>➕ Add</strong> puts it on our list (a backup is taken first, as with any catalog change); <strong>Dismiss</strong> drops the request.",
         ]
       },
       { heading: "⚠️ Missed submissions",
@@ -6003,6 +6259,9 @@ function _saveCatalogBackup(){
 function _setCustomParts(parts){
   _saveCatalogBackup();
   _applyCatalogState(parts);
+  // Share the change with the other fleets (see OTHER FLEETS).
+  try{ if(typeof publishCatalogShare==='function') publishCatalogShare(true); }catch(e){}
+  try{ if(typeof netUpdateBadge==='function') netUpdateBadge(); }catch(e){}
 }
 
 // Read the most recent backup record. Returns null if none exists.
@@ -7289,6 +7548,510 @@ function _origRenderBrowse_patched() {
   renderPag(Math.ceil(tot/PG));
 }
 
+// ── OTHER FLEETS — cross-fleet catalog sharing ──────────────────────
+// Every fleet runs this same app on its own Firebase. Each fleet publishes
+// a small "what we added or re-described" list (rows that differ from the
+// bundled default catalog) to its OWN database under /catalogShare; the
+// Master tab's "Other fleets" view reads the other fleets' lists over plain
+// REST and shows what this fleet doesn't have. Crews can ask the admins to
+// add a part (request lands in THIS fleet's /catalogRequests); admins add,
+// hide, or reconcile description mismatches. Nothing else is read across
+// fleets — no orders, history, receipts or event logs.
+var FLEET_NETWORK=[
+  {fleet:6,  db:'https://ews-fleet6-default-rtdb.firebaseio.com'},
+  {fleet:7,  db:'https://ews-fleet7-default-rtdb.firebaseio.com'},
+  {fleet:10, db:'https://fleet-10-parts-default-rtdb.firebaseio.com'},
+  {fleet:14, db:'https://ews-fleet14-default-rtdb.firebaseio.com'}
+];
+// Live registry: fleets.json in the MASTER repo (served by its GitHub Pages)
+// overrides the built-in list above, so adding a fleet is a one-line edit of
+// that file — no index.html re-deploy. Every fork reads the same file.
+var FLEET_REGISTRY_URL='https://hellfireninja.github.io/-fleet6-parts/fleets.json';
+var NET_REGISTRY_KEY='f6_net_registry';
+var _netRegistryAt=0;
+function _netApplyRegistry(j){
+  if(!j || !Array.isArray(j.fleets)) return false;
+  var list=j.fleets.map(function(f){
+    var n=parseInt(f&&f.fleet), db=String((f&&f.db)||'').trim().replace(/\/+$/,'');
+    return (!isNaN(n) && /^https:\/\/[a-z0-9.-]+\.firebaseio\.com$/i.test(db)) ? {fleet:n, db:db} : null;
+  }).filter(Boolean);
+  if(!list.length) return false;
+  FLEET_NETWORK=list;
+  return true;
+}
+(function(){ try{ var c=JSON.parse(localStorage.getItem(NET_REGISTRY_KEY)||'null'); if(c && _netApplyRegistry(c.data)) _netRegistryAt=c.at||0; }catch(e){} })();
+function _netLoadRegistry(){
+  if(typeof fetch!=='function') return Promise.resolve(false);
+  if(Date.now()-_netRegistryAt<NET_MAX_AGE) return Promise.resolve(true);
+  return _netFetchJson(FLEET_REGISTRY_URL, 6000).then(function(j){
+    if(_netApplyRegistry(j)){ _netRegistryAt=Date.now(); try{ localStorage.setItem(NET_REGISTRY_KEY, JSON.stringify({at:_netRegistryAt, data:j})); }catch(e){} return true; }
+    return false;
+  }).catch(function(){ return false; });
+}
+var NET_SHARE_NODE='catalogShare';
+var NET_CACHE_KEY='f6_net_cache';
+var NET_MAX_AGE=6*60*60*1000;      // auto-refresh when the cached view is older than this
+var _netView='ours';
+var _netData={};                    // fleet -> {fleet, rows, updatedAt, fetchedAt, source, error}
+var _netLoading=false;
+var _netPublishedHash=null;
+var _netShowHidden=false;
+var _netQ='', _netFleet='';
+var _netReqSynced=false;
+var catalogRequests={};             // synced: oracle -> {oracle,sage,desc,uom,dept,fleets,by,role,at}
+var catalogDismissed={};            // synced: oracle -> {by,at}   (admin hid it from the view)
+var catalogMismatchOk={};           // synced: oracle -> accepted "theirs" signature (admin kept ours)
+
+function _netSelfDb(){ var u=(typeof firebaseConfig!=='undefined'&&firebaseConfig&&firebaseConfig.databaseURL)||''; return String(u).replace(/\/+$/,'').toLowerCase(); }
+function _netSelf(){ var me=_netSelfDb(); for(var i=0;i<FLEET_NETWORK.length;i++){ if(FLEET_NETWORK[i].db.toLowerCase()===me) return FLEET_NETWORK[i]; } return null; }
+function _netOthers(){ var me=_netSelfDb(); return FLEET_NETWORK.filter(function(f){ return f.db.toLowerCase()!==me; }); }
+function _netMyFleet(){ var s=_netSelf(); if(s) return s.fleet; var n=(typeof schedule!=='undefined'&&schedule&&schedule.fleetNum!=null)?parseInt(schedule.fleetNum):0; return isNaN(n)?0:n; }
+function _netKey(o){ return String(o).replace(/[^A-Za-z0-9_\-]/g,'_'); }
+function _netNorm(s){ return String(s==null?'':s).replace(/[^\x20-\x7E]+/g,' ').replace(/\s+/g,' ').trim().toUpperCase(); }
+function _netIsAdmin(){ return !!(user && user.role==='Administrative'); }
+function _netAgo(ms){
+  if(!ms) return 'never';
+  var d=Date.now()-ms; if(d<60000) return 'just now';
+  var m=Math.round(d/60000); if(m<60) return m+' min ago';
+  var h=Math.round(d/3600000); if(h<48) return h+' h ago';
+  return Math.round(d/86400000)+' days ago';
+}
+function _netBundleMap(){
+  if(!_netBundleMap._m){
+    var m=Object.create(null);
+    (typeof PARTS!=='undefined'?PARTS:[]).forEach(function(p){ m[String(p[0]).trim()]=p; });
+    _netBundleMap._m=m;
+  }
+  return _netBundleMap._m;
+}
+function _netHash(rows){
+  var s=rows.map(function(r){ return r[0]+'|'+_netNorm(r[2]); }).sort().join('\n'), h=0;
+  for(var i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))|0; }
+  return rows.length+':'+(h>>>0).toString(36);
+}
+// Rows this fleet shares: Oracle #s not in the bundled default list, plus
+// rows whose description was changed from the bundle. Dept/UOM are per-fleet
+// preferences and never count as a difference.
+function computeCatalogShare(parts){
+  var bm=_netBundleMap(), out=[];
+  (parts||[]).forEach(function(p){
+    if(!p) return;
+    var o=String(p[0]==null?'':p[0]).trim(); if(!o) return;
+    var b=bm[o];
+    if(!b || _netNorm(b[2])!==_netNorm(p[2])){
+      var d=parseInt(p[4]); if(isNaN(d)) d=5;
+      out.push([o, String(p[1]==null?'':p[1]), String(p[2]==null?'':p[2]), String(p[3]==null||p[3]===''?'Ea':p[3]), d]);
+    }
+  });
+  return out;
+}
+// Publish (or re-publish) this fleet's share. Cheap: compares a hash with
+// what's already in the cloud and only writes on change.
+function publishCatalogShare(force){
+  try{
+    if(typeof fbReady==='undefined' || !fbReady || !fbDb) return;
+    var rows=computeCatalogShare(getActiveParts());
+    var hash=_netHash(rows);
+    var rec={fleet:_netMyFleet(), updatedAt:Date.now(), build:(typeof APP_BUILD!=='undefined'?APP_BUILD:0), hash:hash, count:rows.length, rows:rows};
+    var write=function(){ try{ fbDb.ref(NET_SHARE_NODE).set(rec); }catch(e){} _netPublishedHash=hash; };
+    if(force){ write(); return; }
+    if(_netPublishedHash===hash) return;
+    fbDb.ref(NET_SHARE_NODE+'/hash').once('value').then(function(s){ if(s.val()!==hash) write(); else _netPublishedHash=hash; }).catch(function(){});
+  }catch(e){ console.warn('[net] publish failed', e); }
+}
+
+// ── fetch the other fleets ──
+function _netFetchJson(url, ms){
+  var ctrl=(typeof AbortController!=='undefined')?new AbortController():null;
+  var t=ctrl?setTimeout(function(){ try{ ctrl.abort(); }catch(e){} }, ms||10000):0;
+  var opts={cache:'no-store'}; if(ctrl) opts.signal=ctrl.signal;
+  return fetch(url, opts).then(function(r){
+    if(t) clearTimeout(t);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.json();
+  }, function(err){ if(t) clearTimeout(t); throw err; });
+}
+function _netSaveCache(){ try{ localStorage.setItem(NET_CACHE_KEY, JSON.stringify({at:Date.now(), data:_netData})); }catch(e){} }
+function _netLoadCache(){
+  try{
+    var raw=localStorage.getItem(NET_CACHE_KEY); if(!raw) return;
+    var c=JSON.parse(raw); if(c && c.data && typeof c.data==='object'){ _netData=c.data; }
+  }catch(e){}
+}
+function _netNewest(){ var t=0; Object.keys(_netData).forEach(function(k){ var d=_netData[k]; if(d && d.fetchedAt>t) t=d.fetchedAt; }); return t; }
+function refreshNetwork(force){
+  var others=_netOthers();
+  if(!others.length){ renderNetwork(); return; }
+  if(_netLoading) return;
+  if(!force && Date.now()-_netNewest()<NET_MAX_AGE && Object.keys(_netData).length){ renderNetwork(); netUpdateBadge(); return; }
+  if(typeof fetch!=='function'){ renderNetwork(); return; }
+  _netLoading=true; renderNetwork();
+  _netLoadRegistry().then(function(){ _netFetchFleets(); }, function(){ _netFetchFleets(); });
+}
+function _netFetchFleets(){
+  var others=_netOthers();
+  if(!others.length){ _netLoading=false; renderNetwork(); return; }
+  var done=0;
+  function finish(){ done++; if(done>=others.length){ _netLoading=false; _netSaveCache(); renderNetwork(); netUpdateBadge(); } }
+  others.forEach(function(f){
+    var base=f.db.replace(/\/+$/,'');
+    _netFetchJson(base+'/'+NET_SHARE_NODE+'.json', 10000).then(function(v){
+      var rows=null;
+      if(v && v.rows){ rows=Array.isArray(v.rows)?v.rows:Object.keys(v.rows).map(function(k){return v.rows[k];}); }
+      else if(v && typeof v.count==='number'){ rows=[]; }   // published with nothing to share (Firebase drops empty arrays)
+      if(rows){
+        _netData[f.fleet]={fleet:f.fleet, rows:rows, updatedAt:v.updatedAt||0, fetchedAt:Date.now(), source:'share', error:''};
+        return null;
+      }
+      // That fleet hasn't published yet (older build) — read its full catalog
+      // once and work out the differences here. Bigger download, one-off.
+      return _netFetchJson(base+'/customParts.json', 25000).then(function(cp){
+        var arr=(cp==null)?[]:(Array.isArray(cp)?cp:Object.keys(cp).map(function(k){return cp[k];}));
+        _netData[f.fleet]={fleet:f.fleet, rows:computeCatalogShare(arr), updatedAt:0, fetchedAt:Date.now(), source:(cp==null?'default':'full'), error:''};
+      });
+    }).catch(function(err){
+      var prev=_netData[f.fleet]||{fleet:f.fleet, rows:[], updatedAt:0, fetchedAt:0, source:''};
+      prev.error=(err && err.name==='AbortError')?'timed out':String((err&&err.message)||err||'unreachable');
+      _netData[f.fleet]=prev;
+    }).then(finish, finish);
+  });
+}
+
+// ── diff against our list ──
+function computeNetworkDiff(){
+  var ours=Object.create(null);
+  getActiveParts().forEach(function(p){ ours[String(p[0]).trim()]=p; });
+  var missing=Object.create(null), mism=Object.create(null);
+  Object.keys(_netData).forEach(function(k){
+    var d=_netData[k]; if(!d || !d.rows) return;
+    d.rows.forEach(function(r){
+      if(!r) return;
+      var o=String(r[0]==null?'':r[0]).trim(); if(!o) return;
+      var mine=ours[o];
+      if(!mine){
+        var m=missing[o]||(missing[o]={oracle:o, sage:String(r[1]||''), desc:String(r[2]||''), uom:String(r[3]||'Ea'), dept:(isNaN(parseInt(r[4]))?5:parseInt(r[4])), fleets:[]});
+        if(m.fleets.indexOf(d.fleet)<0) m.fleets.push(d.fleet);
+        if(!m.desc && r[2]) m.desc=String(r[2]);
+      } else if(_netNorm(mine[2])!==_netNorm(r[2]) && _netNorm(r[2])){
+        var x=mism[o]||(mism[o]={oracle:o, ours:mine, theirs:[]});
+        if(!x.theirs.some(function(t){ return t.fleet===d.fleet; })) x.theirs.push({fleet:d.fleet, desc:String(r[2]||''), sage:String(r[1]||''), uom:String(r[3]||'Ea')});
+      }
+    });
+  });
+  var miss=Object.keys(missing).map(function(k){return missing[k];});
+  miss.forEach(function(m){ m.fleets.sort(function(a,b){return a-b;}); });
+  miss.sort(function(a,b){ return a.desc.localeCompare(b.desc); });
+  var mm=Object.keys(mism).map(function(k){return mism[k];});
+  mm.forEach(function(x){ x.theirs.sort(function(a,b){return a.fleet-b.fleet;}); x.sig=x.theirs.map(function(t){return t.fleet+'='+_netNorm(t.desc);}).join('|'); });
+  mm.sort(function(a,b){ return String(a.ours[2]).localeCompare(String(b.ours[2])); });
+  return {missing:miss, mismatch:mm};
+}
+function _netVisible(diff){
+  var missing=diff.missing.filter(function(m){ return _netShowHidden || !catalogDismissed[_netKey(m.oracle)]; });
+  var hidden=diff.missing.length-diff.missing.filter(function(m){ return !catalogDismissed[_netKey(m.oracle)]; }).length;
+  var mismatch=diff.mismatch.filter(function(x){ return _netShowHidden || catalogMismatchOk[_netKey(x.oracle)]!==x.sig; });
+  return {missing:missing, mismatch:mismatch, hidden:hidden};
+}
+function netUpdateBadge(){
+  try{
+    var any=Object.keys(_netData).some(function(k){ return _netData[k] && _netData[k].rows && _netData[k].rows.length; });
+    var diff=any?computeNetworkDiff():{missing:[],mismatch:[]};
+    var n=diff.missing.filter(function(m){ return !catalogDismissed[_netKey(m.oracle)]; }).length
+         +diff.mismatch.filter(function(x){ return catalogMismatchOk[_netKey(x.oracle)]!==x.sig; }).length;
+    _setBadge('netBadge', n);
+  }catch(e){}
+  try{
+    var ab=document.getElementById('aBadge');
+    if(ab) _setBadge('aBadge', Object.keys(catalogRequests||{}).length);
+  }catch(e){}
+}
+
+// ── view toggle on the Master tab ──
+function setBrowseView(v){
+  _netView=(v==='net')?'net':'ours';
+  var tab=document.getElementById('tab-browse'); if(tab) tab.classList.toggle('net-on', _netView==='net');
+  var a=document.getElementById('netTgOurs'), b=document.getElementById('netTgNet');
+  if(a) a.classList.toggle('active', _netView==='ours');
+  if(b) b.classList.toggle('active', _netView==='net');
+  if(_netView==='net'){ refreshNetwork(false); renderNetwork(); }
+}
+var _netQTmr=null;
+function netSearch(v){ _netQ=String(v||'').trim().toLowerCase(); clearTimeout(_netQTmr); _netQTmr=setTimeout(renderNetwork,120); }
+function netFleetFilter(v){ _netFleet=String(v||''); renderNetwork(); }
+function netToggleHidden(){ _netShowHidden=!_netShowHidden; renderNetwork(); }
+
+function _netFleetChipHtml(f){
+  var d=_netData[f.fleet];
+  var cls='net-chip', txt='';
+  if(!d || (!d.fetchedAt && !d.error)){ cls+=' net-chip-wait'; txt='not checked yet'; }
+  else if(d.error && !d.fetchedAt){ cls+=' net-chip-err'; txt='unreachable'; }
+  else {
+    var n=(d.rows||[]).length;
+    txt=n+' shared'+(d.source==='full'?' (full list read)':d.source==='default'?' (default list)':'')+' · '+_netAgo(d.fetchedAt);
+    if(d.error){ cls+=' net-chip-err'; txt+=' · refresh failed'; }
+  }
+  return '<span class="'+cls+'"><strong>Fleet '+f.fleet+'</strong> '+e(txt)+'</span>';
+}
+function _netMatches(text){ if(!_netQ) return true; return String(text||'').toLowerCase().indexOf(_netQ)>=0; }
+function _netReqChip(o){
+  var r=catalogRequests[_netKey(o)]; if(!r) return '';
+  return '<span class="stbadge stbadge-sub" title="Requested '+e(new Date(r.at||0).toLocaleString())+'">✓ Requested'+(r.by?' by '+e(r.by):'')+'</span>';
+}
+function _netMissingCard(m){
+  var dept=(m.dept>=0 && m.dept<DN.length)?m.dept:5;
+  var hiddenNow=!!catalogDismissed[_netKey(m.oracle)];
+  var onTxt='On: '+m.fleets.map(function(f){return 'Fleet '+f;}).join(', ');
+  var acts='';
+  if(_netIsAdmin()){
+    acts+='<button class="ab" onclick="netAdd(\''+_netKey(m.oracle)+'\')" title="Add this part to our master list (classification can be changed afterwards)">➕ Add to our list</button>';
+    acts+=hiddenNow
+      ? '<button class="btn-ghost net-mini" onclick="netUnhide(\''+_netKey(m.oracle)+'\')" title="Show this part in the view again">Unhide</button>'
+      : '<button class="btn-ghost net-mini" onclick="netHide(\''+_netKey(m.oracle)+'\')" title="Not relevant for our fleet — hide it from this view for everyone">Hide</button>';
+  } else {
+    acts+=catalogRequests[_netKey(m.oracle)]
+      ? '<span class="net-requested">✓ Requested</span>'
+      : '<button class="ab" onclick="netRequest(\''+_netKey(m.oracle)+'\')" title="Ask our admins to add this part to our master list">🙋 Ask admin to add</button>';
+  }
+  return '<div class="part-card net-card d'+dept+(hiddenNow?' net-hiddenrow':'')+'" data-o="'+e(m.oracle)+'">'+
+    '<div class="pinfo">'+
+      '<div class="pdesc">'+e(m.desc||'(no description)')+'</div>'+
+      '<div class="pmeta">'+
+        '<span>'+DI[dept]+' '+e(DN[dept])+'</span>'+
+        '<span>Oracle: <strong style="color:var(--text)">'+e(m.oracle)+'</strong></span>'+
+        (m.sage?'<span>SAGE: '+e(m.sage)+'</span>':'')+
+        '<span>UOM: '+e(m.uom||'Ea')+'</span>'+
+        '<span class="net-onfleets">'+e(onTxt)+'</span>'+
+        (hiddenNow?'<span class="net-hiddenchip">hidden</span>':'')+
+        (_netIsAdmin()?_netReqChip(m.oracle):'')+
+      '</div>'+
+    '</div>'+
+    '<div class="pact">'+imgBtnHtml(m.oracle, m.desc)+acts+'</div>'+
+  '</div>';
+}
+function _netMismatchCard(x){
+  var p=x.ours, dept=parseInt(p[4]); if(isNaN(dept)||dept<0||dept>=DN.length) dept=5;
+  var okNow=catalogMismatchOk[_netKey(x.oracle)]===x.sig;
+  var sides='<div class="net-side net-side-ours"><div class="net-lbl">Ours</div><div class="net-txt">'+e(p[2])+'</div></div>';
+  x.theirs.forEach(function(t){
+    var act=_netIsAdmin()?'<button class="btn-ghost net-mini" onclick="netUseTheirs(\''+_netKey(x.oracle)+'\','+t.fleet+')" title="Replace our description with Fleet '+t.fleet+'’s">Use this</button>':'';
+    sides+='<div class="net-side"><div class="net-lbl">Fleet '+t.fleet+act+'</div><div class="net-txt">'+e(t.desc)+'</div></div>';
+  });
+  var acts='';
+  if(_netIsAdmin()){
+    acts=okNow
+      ? '<button class="btn-ghost net-mini" onclick="netUnkeep(\''+_netKey(x.oracle)+'\')" title="Flag this mismatch again">Re-flag</button>'
+      : '<button class="btn-ghost net-mini" onclick="netKeepOurs(\''+_netKey(x.oracle)+'\')" title="Our wording is right — stop flagging this one (until theirs changes again)">Keep ours</button>';
+  }
+  return '<div class="part-card net-card net-mmcard d'+dept+(okNow?' net-hiddenrow':'')+'" data-o="'+e(x.oracle)+'">'+
+    '<div class="pinfo">'+
+      '<div class="pmeta" style="margin-bottom:8px;">'+
+        '<span>'+DI[dept]+' '+e(DN[dept])+'</span>'+
+        '<span>Oracle: <strong style="color:var(--text)">'+e(x.oracle)+'</strong></span>'+
+        (p[1]?'<span>SAGE: '+e(p[1])+'</span>':'')+
+        (okNow?'<span class="net-hiddenchip">kept ours</span>':'')+
+      '</div>'+
+      '<div class="net-mm">'+sides+'</div>'+
+    '</div>'+
+    '<div class="pact">'+imgBtnHtml(x.oracle)+acts+'</div>'+
+  '</div>';
+}
+function renderNetwork(){
+  var host=document.getElementById('netPanel'); if(!host) return;
+  if(_netView!=='net'){ return; }
+  var others=_netOthers();
+  var diff=computeNetworkDiff(), vis=_netVisible(diff);
+  var fleetOpts='<option value="">All fleets</option>'+others.map(function(f){ return '<option value="'+f.fleet+'"'+(_netFleet===String(f.fleet)?' selected':'')+'>Fleet '+f.fleet+'</option>'; }).join('');
+  var missing=vis.missing.filter(function(m){ return (!_netFleet || m.fleets.indexOf(parseInt(_netFleet))>=0) && (_netMatches(m.desc)||_netMatches(m.oracle)||_netMatches(m.sage)); });
+  var mismatch=vis.mismatch.filter(function(x){ return (!_netFleet || x.theirs.some(function(t){return String(t.fleet)===_netFleet;})) && (_netMatches(x.ours[2])||_netMatches(x.oracle)||x.theirs.some(function(t){return _netMatches(t.desc);})); });
+  var anyData=Object.keys(_netData).some(function(k){ return _netData[k] && _netData[k].fetchedAt; });
+  var head='';
+  head+='<div class="net-hd">'+
+    '<div class="net-hd-l">'+
+      '<div class="net-title">🌐 Parts on other fleets’ master lists that aren’t on ours</div>'+
+      '<div class="net-sub">Read-only view of what the other fleets have added to their lists'+(_netIsAdmin()?' — add what we need, hide what we don’t.':' — spot something we should carry? Ask an admin to add it.')+' Only catalog rows are shared between fleets, never orders or history.</div>'+
+      '<div class="net-chips">'+others.map(_netFleetChipHtml).join('')+'</div>'+
+    '</div>'+
+    '<div class="net-hd-r">'+
+      '<button class="btn-ghost" onclick="refreshNetwork(true)" '+(_netLoading?'disabled':'')+'>'+(_netLoading?'⏳ Checking…':'↻ Refresh')+'</button>'+
+      (vis.hidden||diff.mismatch.length!==vis.mismatch.length?'<button class="net-link" onclick="netToggleHidden()">'+(_netShowHidden?'Hide the hidden ones':'Show hidden ('+(vis.hidden+(diff.mismatch.length-vis.mismatch.length))+')')+'</button>':'')+
+    '</div>'+
+  '</div>';
+  var filters='<div class="search-row net-filters">'+
+    '<div class="sbox"><span class="sico">🔍</span><input type="text" id="nQ" placeholder="Search these parts — description, Oracle #, SAGE" value="'+e(_netQ)+'" oninput="netSearch(this.value)" /></div>'+
+    '<select class="fsel" id="nFleet" onchange="netFleetFilter(this.value)">'+fleetOpts+'</select>'+
+  '</div>';
+  var html='';
+  if(!others.length){
+    html+='<div class="empty"><div class="ei">🌐</div><p>No other fleets are configured yet.</p></div>';
+  } else if(!anyData && _netLoading){
+    html+='<div class="empty"><div class="ei">⏳</div><p>Checking the other fleets…</p></div>';
+  } else if(!anyData){
+    html+='<div class="empty"><div class="ei">📡</div><p>Couldn’t reach any other fleet.<br>Check the connection and hit Refresh.</p></div>';
+  } else {
+    html+='<div class="sec-hd net-sec"><div class="net-sec-t">➕ Not on our list <span class="net-count">'+missing.length+'</span></div></div>';
+    html+=missing.length
+      ? '<div class="parts-list">'+missing.map(_netMissingCard).join('')+'</div>'
+      : '<div class="net-empty">'+(_netQ||_netFleet?'Nothing matches that filter.':'All caught up — nothing on the other fleets’ lists that we don’t already have.')+'</div>';
+    html+='<div class="sec-hd net-sec" style="margin-top:22px;"><div class="net-sec-t">⚠️ Same Oracle #, different description <span class="net-count">'+mismatch.length+'</span></div><div class="net-sec-s">Where two fleets describe the same Oracle # differently — one of them is probably wrong.</div></div>';
+    html+=mismatch.length
+      ? '<div class="parts-list">'+mismatch.map(_netMismatchCard).join('')+'</div>'
+      : '<div class="net-empty">'+(_netQ||_netFleet?'Nothing matches that filter.':'No description conflicts with the other fleets.')+'</div>';
+  }
+  // Head + lists re-render freely; the filter row is built once so typing in
+  // the search box never loses focus on a refresh.
+  if(!document.getElementById('netHead')){
+    host.innerHTML='<div id="netHead"></div><div id="netFilters"></div><div id="netLists"></div>';
+  }
+  document.getElementById('netHead').innerHTML=head;
+  if(!document.getElementById('nQ')) document.getElementById('netFilters').innerHTML=filters;
+  document.getElementById('netLists').innerHTML=html;
+  netUpdateBadge();
+}
+
+// ── actions ──
+function _netFindMissing(o){
+  var diff=computeNetworkDiff();
+  for(var i=0;i<diff.missing.length;i++){ if(_netKey(diff.missing[i].oracle)===o) return diff.missing[i]; }
+  return null;
+}
+function _netFindMismatch(o){
+  var diff=computeNetworkDiff();
+  for(var i=0;i<diff.mismatch.length;i++){ if(_netKey(diff.mismatch[i].oracle)===o) return diff.mismatch[i]; }
+  return null;
+}
+function _netWho(){ return (user&&user.name)||''; }
+function _netRole(){ return (user&&user.role)||''; }
+function netRequest(k){
+  var m=_netFindMissing(k); if(!m){ toast('That part is no longer listed'); return; }
+  if(typeof fbReady==='undefined' || !fbReady || !fbDb){ toast('Not connected — try again when you’re back online'); return; }
+  var rec={oracle:m.oracle, sage:m.sage||'', desc:m.desc||'', uom:m.uom||'Ea', dept:m.dept, fleets:m.fleets.slice(), by:_netWho(), role:_netRole(), at:Date.now()};
+  try{ fbDb.ref('catalogRequests/'+_netKey(m.oracle)).set(rec); }catch(e){ toast('Could not send the request'); return; }
+  catalogRequests[_netKey(m.oracle)]=rec;
+  try{ writeLog('CATREQ', m.oracle, m.desc, '', _netWho(), _netRole()); }catch(e){}
+  toast('Sent to the admins ✓');
+  renderNetwork();
+}
+function _netAddRow(row, src){
+  var o=String(row.oracle).trim();
+  var parts=getActiveParts().slice();
+  if(parts.some(function(p){ return p[0]===o; })){ toast('Oracle # '+o+' is already on our list'); return false; }
+  var d=parseInt(row.dept); if(isNaN(d)||d<0||d>=DN.length) d=5;
+  parts.push([o, String(row.sage||''), String(row.desc||''), String(row.uom||'Ea'), d]);
+  parts.sort(function(a,b){ return a[0].localeCompare(b[0]); });
+  _setCustomParts(parts);
+  fuseIndex=null; if(typeof _favFuse!=='undefined') _favFuse=null;
+  try{ writeLog('CATADD', o, row.desc, '', _netWho(), _netRole()); }catch(e){}
+  return true;
+}
+function _netClearRequest(o){
+  if(catalogRequests[_netKey(o)]) delete catalogRequests[_netKey(o)];
+  if(typeof fbReady!=='undefined' && fbReady && fbDb){ try{ fbDb.ref('catalogRequests/'+_netKey(o)).remove(); }catch(e){} }
+}
+function netAdd(k){
+  if(!_netIsAdmin()){ toast('Admin only'); return; }
+  var m=_netFindMissing(k);
+  if(!m){
+    // Fall back to the request record (the other fleet may have since dropped it)
+    if(catalogRequests[k]) m=catalogRequests[k];
+  }
+  if(!m){ toast('That part is no longer listed'); return; }
+  if(!_netAddRow(m)) return;
+  _netClearRequest(m.oracle);
+  if(catalogDismissed[_netKey(m.oracle)]) netUnhide(k, true);
+  toast('Added to our master list ✓');
+  if(typeof updateCustomPartsStatus==='function') updateCustomPartsStatus();
+  renderNetwork(); renderCatalogRequests();
+}
+function netHide(k){
+  if(!_netIsAdmin()){ toast('Admin only'); return; }
+  var m=_netFindMissing(k); if(!m) return;
+  var rec={by:_netWho(), at:Date.now()};
+  catalogDismissed[_netKey(m.oracle)]=rec;
+  if(typeof fbReady!=='undefined' && fbReady && fbDb){ try{ fbDb.ref('catalogDismissed/'+_netKey(m.oracle)).set(rec); }catch(e){} }
+  _netClearRequest(m.oracle);
+  renderNetwork(); renderCatalogRequests();
+}
+function netUnhide(k, quiet){
+  if(!catalogDismissed[k]) return;
+  delete catalogDismissed[k];
+  if(typeof fbReady!=='undefined' && fbReady && fbDb){ try{ fbDb.ref('catalogDismissed/'+k).remove(); }catch(e){} }
+  if(!quiet) renderNetwork();
+}
+function netDismissRequest(k){
+  if(!_netIsAdmin()){ toast('Admin only'); return; }
+  var r=catalogRequests[k]; if(!r) return;
+  _netClearRequest(r.oracle||k);
+  toast('Request dismissed');
+  renderCatalogRequests(); renderNetwork();
+}
+function netKeepOurs(k){
+  if(!_netIsAdmin()){ toast('Admin only'); return; }
+  var x=_netFindMismatch(k); if(!x) return;
+  catalogMismatchOk[_netKey(x.oracle)]=x.sig;
+  if(typeof fbReady!=='undefined' && fbReady && fbDb){ try{ fbDb.ref('catalogMismatchOk/'+_netKey(x.oracle)).set(x.sig); }catch(e){} }
+  renderNetwork();
+}
+function netUnkeep(k){
+  if(!catalogMismatchOk[k]) return;
+  delete catalogMismatchOk[k];
+  if(typeof fbReady!=='undefined' && fbReady && fbDb){ try{ fbDb.ref('catalogMismatchOk/'+k).remove(); }catch(e){} }
+  renderNetwork();
+}
+function netUseTheirs(k, fleet){
+  if(!_netIsAdmin()){ toast('Admin only'); return; }
+  var x=_netFindMismatch(k); if(!x) return;
+  var t=x.theirs.find(function(t){ return t.fleet===fleet; }); if(!t) return;
+  if(!confirm('Replace our description of Oracle '+x.oracle+' with Fleet '+fleet+'’s?\n\nOurs:   '+x.ours[2]+'\nTheirs: '+t.desc)) return;
+  var parts=getActiveParts().slice();
+  var idx=parts.findIndex(function(p){ return p[0]===x.oracle; }); if(idx<0){ toast('Part not found'); return; }
+  var row=parts[idx].slice(); var old=row[2];
+  row[2]=t.desc; if(!row[1] && t.sage) row[1]=t.sage;
+  parts[idx]=row;
+  _setCustomParts(parts);
+  fuseIndex=null; if(typeof _favFuse!=='undefined') _favFuse=null;
+  try{ writeLog('EDIT', x.oracle, old+' → '+t.desc, '', _netWho(), _netRole()); }catch(e){}
+  if(typeof _recordPartEdit==='function'){ try{ _recordPartEdit(x.oracle, x.oracle, row, ['Description']); }catch(e){} }
+  toast('Description updated ✓');
+  renderNetwork();
+}
+
+// ── admin tab: request queue ──
+function renderCatalogRequests(){
+  var host=document.getElementById('catReqPanel'); if(!host) return;
+  var keys=Object.keys(catalogRequests||{}).filter(function(k){ return catalogRequests[k] && catalogRequests[k].oracle; });
+  try{ _setBadge('aBadge', keys.length); }catch(e){}
+  if(!keys.length){ host.innerHTML=''; host.style.display='none'; return; }
+  host.style.display='';
+  var rows=keys.map(function(o){ return catalogRequests[o]; }).sort(function(a,b){ return (b.at||0)-(a.at||0); });
+  var html='<div class="net-req-hd">📥 Requests from the crews <span class="net-count">'+rows.length+'</span><span class="net-req-sub">Parts spotted on other fleets’ lists (Master List → Other fleets). Add puts the part on our list; Dismiss just drops the request.</span></div>';
+  html+='<div class="parts-list">'+rows.map(function(r){
+    var dept=parseInt(r.dept); if(isNaN(dept)||dept<0||dept>=DN.length) dept=5;
+    var k=_netKey(r.oracle);
+    var when=r.at?new Date(r.at).toLocaleDateString():'';
+    return '<div class="part-card net-card d'+dept+'">'+
+      '<div class="pinfo">'+
+        '<div class="pdesc">'+e(r.desc||'(no description)')+'</div>'+
+        '<div class="pmeta">'+
+          '<span>'+DI[dept]+' '+e(DN[dept])+'</span>'+
+          '<span>Oracle: <strong style="color:var(--text)">'+e(r.oracle)+'</strong></span>'+
+          (r.sage?'<span>SAGE: '+e(r.sage)+'</span>':'')+
+          '<span>UOM: '+e(r.uom||'Ea')+'</span>'+
+          ((r.fleets&&r.fleets.length)?'<span class="net-onfleets">On: '+r.fleets.map(function(f){return 'Fleet '+f;}).join(', ')+'</span>':'')+
+          '<span>Asked by '+e(r.by||'?')+(r.role&&r.role!=='Administrative'?' ('+e(r.role)+')':'')+(when?' · '+e(when):'')+'</span>'+
+        '</div>'+
+      '</div>'+
+      '<div class="pact">'+imgBtnHtml(r.oracle, r.desc)+
+        '<button class="ab" onclick="netAdd(\''+k+'\')">➕ Add to our list</button>'+
+        '<button class="btn-ghost net-mini" onclick="netDismissRequest(\''+k+'\')">Dismiss</button>'+
+      '</div>'+
+    '</div>';
+  }).join('')+'</div>';
+  host.innerHTML=html;
+}
+
+// ── boot ──
+_netLoadCache();
+
 // ── FAVORITES COLORS ─────────────────────────────────────────
 var FAV_COLORS = [
   {k:'none',   label:'Default',  bg:'var(--card)',                  border:'var(--border)',         text:'var(--text)'},
@@ -7400,7 +8163,7 @@ function favCard(p){
           <span>Oracle: ${p[0]}</span><span>SAGE: ${p[1]}</span><span style="display:inline-flex;align-items:center;gap:3px;">UOM: <select class="uom-select" data-oracle="${p[0]}" onchange="onUomChange(this)" title="Change unit of measure (applies for everyone)">${uomOptionsHtml(p[3])}</select></span>${orphanChip}
         </div>
       </div>
-      <button class="fb" onclick="togF('${oracle}',this)" style="font-size:16px;flex-shrink:0;">⭐</button>
+      ${imgBtnHtml(oracle)}<button class="fb" onclick="togF('${oracle}',this)" style="font-size:21px;flex-shrink:0;">⭐</button>
       <div class="qwrap" style="flex-shrink:0;">
         <button class="qb" onclick="aT('${oracle}',-1)">−</button>
         <input class="qi" id="tq_${oracle}" type="number" value="${qval}" min="1" />
@@ -8184,6 +8947,57 @@ function _renderSoundMenu(){ try{ var on=window.f6Sound&&f6Sound.on(); var th=(w
   }catch(e){}
 })();
 
+</script>
+
+<script>
+// ── INSTALL AS AN APP (PWA) ──────────────────────────────────────
+// sw.js + manifest.webmanifest make the site installable (Chrome/Edge
+// "Install app", Android/iOS "Add to Home Screen") and let the installed app
+// open with no signal showing the last-synced lists (index.html and its
+// scripts are served from the service-worker cache when the network fails;
+// the app's own localStorage mirror supplies the data, exactly like today's
+// offline behaviour). Online, every load still comes straight from GitHub
+// Pages, so the APP_BUILD forced-reload keeps working unchanged.
+var _pwaPrompt=null;
+function _pwaStandalone(){ try{ return (window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true; }catch(e){ return false; } }
+function _pwaIsIOS(){ return /iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1); }
+function _pwaIsMobile(){ return /Android/i.test(navigator.userAgent)||_pwaIsIOS(); }
+function _pwaRefreshCard(){
+  var card=document.getElementById('pwaInstallCard'); if(!card) return;
+  if(_pwaStandalone()){ card.style.display='none'; return; }
+  card.style.display=(_pwaPrompt||_pwaIsIOS())?'':'none';
+  var t=document.getElementById('pwaInstallTitle'), su=document.getElementById('pwaInstallSub');
+  if(_pwaIsMobile()){
+    if(t) t.textContent='Add to Home Screen';
+    if(su) su.textContent='Full-screen app icon on your phone — opens even with no signal';
+  } else {
+    if(t) t.textContent='Install on this PC';
+    if(su) su.textContent='Own window, Start-menu & desktop icon, opens offline with the last-synced lists';
+  }
+}
+window.addEventListener('beforeinstallprompt', function(ev){ ev.preventDefault(); _pwaPrompt=ev; _pwaRefreshCard(); });
+window.addEventListener('appinstalled', function(){ _pwaPrompt=null; _pwaRefreshCard(); try{ toast('Installed ✓ — look for EWS Parts Order in your Start menu or home screen'); }catch(e){} });
+function installApp(){
+  if(_pwaPrompt){
+    var p=_pwaPrompt;
+    try{ p.prompt(); }catch(e){}
+    if(p.userChoice&&p.userChoice.then){ p.userChoice.then(function(){ _pwaPrompt=null; _pwaRefreshCard(); }).catch(function(){}); }
+    return;
+  }
+  // No native prompt here (iPhone/iPad, Firefox, or the prompt was already
+  // dismissed) — spell out the manual route.
+  var msg=_pwaIsIOS()
+    ? 'On iPhone / iPad (Safari):\n\n1. Tap the Share button (the box with an arrow)\n2. Scroll down and tap "Add to Home Screen"\n3. Tap Add'
+    : 'In Chrome or Edge: click the install icon at the right end of the address bar (a small monitor with a down-arrow), or open the browser menu and choose "Install EWS Parts Order" (Edge: Apps → Install this site as an app).\n\nFirefox can\'t install web apps — use Chrome or Edge for this part.';
+  alert(msg);
+}
+if('serviceWorker' in navigator && (location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('./sw.js').then(function(){ console.info('[PWA] service worker ready'); })
+      .catch(function(e){ console.warn('[PWA] service worker not registered:', e&&e.message); });
+  });
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', _pwaRefreshCard); else _pwaRefreshCard();
 </script>
 </body>
 </html>
