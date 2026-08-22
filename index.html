@@ -180,6 +180,7 @@ input,select{outline:none;font-family:inherit;}
   .net-hd{padding:12px;}
   .net-card .pact{flex-wrap:wrap;}
 }
+#pwaInstallCard button:hover{color:#e8edf2 !important;border-color:rgba(139,149,160,.75) !important;}
 /* ── 🖼 Pics pill — opens Google Images for the part in a new tab ── */
 .pimg-btn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;flex-shrink:0;text-decoration:none;background:rgba(150,150,175,0.10);border:1px solid rgba(150,150,175,0.35);color:var(--muted);border-radius:2px;font-size:16px;line-height:1;cursor:pointer;vertical-align:middle;font-family:inherit;transition:color .12s,border-color .12s,background .12s,transform .2s;}
 .pimg-btn:hover{color:var(--teal);border-color:var(--teal);background:var(--teal-dim);transform:scale(1.12);}
@@ -1024,6 +1025,17 @@ html,body{
     <div class="login-foot" style="margin-top:6px;opacity:.65;">Developed by Mason Columbine for Field Operations</div>
   </div>
 
+  <!-- Install as an app — discreet link, only shown where the browser can do it
+       (Chrome/Edge once the install prompt is available; iPhone/iPad always,
+       with Share → Add to Home Screen steps). Hidden inside the installed app. -->
+  <div id="pwaInstallCard" style="max-width:420px;margin:12px auto 0;display:none;text-align:center;">
+    <button type="button" onclick="installApp()" title="Install this app on your device" style="display:inline-flex;align-items:center;gap:7px;padding:7px 14px;background:transparent;border:1px solid rgba(139,149,160,.35);border-radius:999px;color:#8b95a0;font-size:11.5px;font-weight:700;letter-spacing:.04em;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent;">
+      <span aria-hidden="true" style="font-size:13px;line-height:1;">&#8681;</span>
+      <span id="pwaInstallTitle">Install on this PC</span>
+      <span id="pwaInstallSub" style="display:none;"></span>
+    </button>
+  </div>
+
   <!-- Switch to the Iron Inventory app (separate file, same repo/Firebase) -->
   <div style="max-width:420px;margin:16px auto 0;">
     <div style="display:flex;align-items:center;gap:10px;color:#8b95a0;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;margin:0 4px 9px;">
@@ -1039,19 +1051,6 @@ html,body{
     </a>
   </div>
 
-  <!-- Install as an app — only shown where the browser can actually do it
-       (Chrome/Edge once the install prompt is available; iPhone/iPad always,
-       with Share → Add to Home Screen steps). Hidden inside the installed app. -->
-  <div id="pwaInstallCard" style="max-width:420px;margin:10px auto 0;display:none;">
-    <button type="button" onclick="installApp()" style="width:100%;display:flex;align-items:center;gap:12px;padding:13px 15px;background:linear-gradient(180deg,rgba(47,140,202,.12),rgba(47,140,202,.05));border:1px solid rgba(47,140,202,.38);border-radius:14px;color:#e8edf2;cursor:pointer;text-align:left;font-family:inherit;-webkit-tap-highlight-color:transparent;">
-      <span style="display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;background:rgba(47,140,202,.16);flex:0 0 auto;"><img src="icon-192.png" alt="" style="width:26px;height:26px;" onerror="this.style.display='none'"></span>
-      <span style="flex:1;min-width:0;">
-        <span style="display:block;font-weight:800;font-size:15px;" id="pwaInstallTitle">Install on this PC</span>
-        <span style="display:block;font-size:12px;opacity:.64;margin-top:1px;" id="pwaInstallSub">Own window, Start-menu &amp; desktop icon, opens offline with the last-synced lists</span>
-      </span>
-      <span style="font-size:22px;color:#3f9bd6;opacity:.85;flex:0 0 auto;">›</span>
-    </button>
-  </div>
 </div>
 
 <!-- APP -->
@@ -2117,7 +2116,7 @@ const SK={o:'f6_ord',k:'f6_kp',h:'f6_hi',b:'f6_ob',s:'f6_os',a:'f6_oa',lr:'f6_lr
 // client that hears a newer build force-reloads to pull the new file from
 // GitHub Pages — one sign-in on the new build converges the whole fleet
 // without anyone hand-refreshing. See the appBuild listener in fbInit().
-const APP_BUILD=2026082104;
+const APP_BUILD=2026082105;
 // Arriving on a cache-busted URL (?b=...) from a forced reload: clean the
 // address bar back to the bare path.
 try{ if(location.search.indexOf('?b=')===0) history.replaceState(null,'',location.pathname); }catch(e){}
