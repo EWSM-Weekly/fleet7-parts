@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
 <title>Fleet 6 Parts Order — Evolution Well Services</title>
 <!-- Installable app (PWA): manifest + icons cut from Flame Logo.ico. The same
      files ship to every fork; a fleet can rename the app by editing
@@ -18,7 +18,16 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="EWS Parts">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/7.0.0/fuse.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- SheetJS 0.20.3. Was cdnjs 0.18.5, which npm has not moved since 2022 and
+     which carries CVE-2023-30533 (prototype pollution) and CVE-2024-22363
+     (ReDoS, CVSS 7.5) — both in the file-parsing path the Oracle true-up
+     feeds spreadsheets into. @e965/xlsx is a byte-identical mirror of the
+     vendor's own 0.20.3 build (sha256 cc015130aa85...), pinned with SRI so a
+     swapped CDN file simply refuses to run. defer: nothing on screen waits
+     for 326KB that is only needed once an admin opens a spreadsheet. -->
+<script defer src="https://cdn.jsdelivr.net/npm/@e965/xlsx@0.20.3/dist/xlsx.full.min.js"
+        integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="firebase-config.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
@@ -526,7 +535,8 @@ input,select{outline:none;font-family:inherit;}
 .mbtns{display:flex;gap:10px;} .mbtns button{flex:1;}
 
 /* ── TOAST ── */
-#toast{position:fixed;bottom:72px;left:0;right:0;margin:0 auto;width:max-content;max-width:90vw;background:var(--teal);color:#fff;padding:9px 22px;border-radius:2px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
+#uiScaleBtn{display:none;}
+#toast{position:fixed;bottom:calc(72px + env(safe-area-inset-bottom,0px));left:0;right:0;margin:0 auto;width:max-content;max-width:90vw;background:var(--teal);color:#fff;padding:9px 22px;border-radius:2px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
 #toast.show{opacity:1;}
 /* ── Motion-paired hover affordances ─ transforms are owned by Motion JS; CSS
    only animates shadow/filter here so the two never fight. Reduced-motion users
@@ -553,6 +563,14 @@ input,select{outline:none;font-family:inherit;}
   .pact{width:100%;justify-content:flex-end;padding-top:8px;border-top:1px solid var(--border);margin-top:4px;}
   .stats-row{gap:4px;}
   .tb-user,.tb-div,.tb-fleet{display:none;}
+  #uiScaleBtn{display:inline-flex !important;align-items:center;justify-content:center;
+    min-width:40px;min-height:34px;padding:0 6px;border-radius:7px;background:transparent;
+    border:1px solid var(--border2);color:var(--muted);font-size:9.5px;font-weight:700;
+    font-variant-numeric:tabular-nums;letter-spacing:0;flex-shrink:0;}
+  /* The size button needs room in an already-full bar. The dot still carries
+     sync state (and its title), so the word is what gives way, not Exit. */
+  #syncLbl{display:none;}
+  #uiScaleBtn.on{color:var(--teal);border-color:var(--teal);}
   .topbar{padding:0 14px;height:50px;}
   .tb-logo{height:24px;}
   .role-grid{grid-template-columns:repeat(2,1fr);}
@@ -607,8 +625,13 @@ input,select{outline:none;font-family:inherit;}
   .odot{display:none;}
   /* description gets its own full-width row at the top */
   .odesc{flex:0 0 100% !important;order:-1;font-size:14px;font-weight:600;white-space:normal;line-height:1.35;}
-  /* meta wraps in remaining space; qty and delete stay fixed on the right */
-  .ometa{flex:1 1 0;min-width:0;order:0;line-height:1.45;}
+  /* meta wraps in remaining space; qty and delete stay fixed on the right.
+     min-width, not a flex-basis: with basis 0 and no floor, an admin row —
+     which carries Submit on top of the stepper and remove — squeezed the meta
+     into a 55px column that wrapped to TEN lines. A 150px floor makes it drop
+     to its own line only when the controls really don't leave room, so the
+     ordinary crew row (which had 159px and fitted fine) is untouched. */
+  .ometa{flex:1 1 0;min-width:150px;order:0;line-height:1.45;}
   .ord-item .qwrap{order:0;flex-shrink:0;}
   .ord-item .rm{order:0;flex-shrink:0;}
 
@@ -754,7 +777,10 @@ input,select{outline:none;font-family:inherit;}
   .stats-row{gap:6px !important;}
   .stat-box{background:var(--card2);border:1px solid var(--border);border-radius:13px;padding:10px 4px !important;box-shadow:0 1px 2px rgba(0,0,0,.18);}
   .sn{font-size:19px !important;font-weight:800 !important;}
-  .sl{font-size:9px !important;letter-spacing:.2px !important;}
+  /* "MECHANICAL" is the longest label and overran its 58px tile at 9px/.2px.
+     Sized so the longest one fits on one line; "Total Items" still wraps at
+     its space, which is why this is not white-space:nowrap. */
+  .sl{font-size:8px !important;letter-spacing:0 !important;}
   /* section header rhythm */
   .sec-hd{margin-bottom:12px;}
   /* admin schedule config — stack label over full-width control */
@@ -1063,6 +1089,7 @@ html,body{
     <div class="tb-right">
       <div class="tb-user"><div class="un" id="hName"></div><div class="ur" id="hRole"></div></div>
       <span class="dpill" id="hBadge"></span>
+      <button id="uiScaleBtn" onclick="cycleUiScale()" title="Fit more on screen" aria-label="Screen size">100%</button>
       <div title="Cloud sync status" style="display:flex;align-items:center;gap:5px;padding:0 4px;">
         <span id="syncDot" style="width:8px;height:8px;border-radius:50%;background:#888;display:inline-block;transition:background .3s;"></span>
         <span id="syncLbl" style="font-size:10px;color:#888;letter-spacing:.5px;font-weight:600;">Offline</span>
@@ -1310,6 +1337,23 @@ html,body{
         </div>
       </div>
       <div class="acard">
+        <h3>🔄 Oracle True-Up</h3>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">Upload Oracle's open transfer-order export. The app compares it with Parts Received, shows every difference, and sets the app to match Oracle for the ones you tick. Nothing changes until you hit Apply.</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <label style="background:var(--teal);color:#fff;border-radius:2px;padding:9px 18px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;cursor:pointer;">
+            📂 Choose Oracle Export
+            <input type="file" id="tuUpload" accept=".xlsx,.xls,.xlsm,.csv,.tsv,.txt,.xml" style="display:none;" onchange="tuOpen(this)" />
+          </label>
+          <button class="btn-ghost" id="tuUndo" onclick="tuUndo()" style="display:none;font-size:11px;"></button>
+        </div>
+        <details style="margin-top:12px;"><summary style="font-size:11px;color:var(--muted);cursor:pointer;">No file? Paste rows copied from Oracle</summary>
+          <textarea id="tuPasteBox" class="bo-note-input" rows="4" style="margin-top:8px;min-height:80px;" placeholder="Select the rows in Oracle, copy, paste here"></textarea>
+          <button class="btn-ghost" onclick="tuPaste()" style="margin-top:6px;font-size:11px;">Read pasted rows</button>
+        </details>
+        <div style="font-size:11px;color:var(--muted2);margin-top:8px;">Takes Excel, CSV, tab/text and Oracle XML. Columns are found by what's in them, so the layout doesn't have to match. You confirm the columns before anything is applied.</div>
+      </div>
+      <div class="acard" id="tuGapCard" style="display:none"></div>
+      <div class="acard">
         <h3>📦 Master Parts List Management</h3>
         <div id="catReqPanel" style="display:none"></div>
         <div id="customPartsStatus" style="font-size:12px;color:var(--muted);margin-bottom:14px;padding:10px 12px;background:var(--nav);border-radius:2px;border:1px solid var(--border);"></div>
@@ -1393,6 +1437,32 @@ html,body{
 <!-- Force-reset modal removed — weekly reset is fully automatic on Monday 8 AM -->
 
 <!-- BACKORDER REMOVAL MODAL — admin picks which backorders to permanently delete -->
+<style>
+  /* True-up review rows. On a phone the part name was being crushed into a
+     ~150px column because the "app 5 -> receive 2" figure is nowrap and holds
+     its width; below 520px the figure drops to its own line instead. */
+  .turow{display:flex;align-items:center;gap:10px;padding:10px;border-bottom:1px solid var(--border);font-size:12px;min-height:44px;}
+  .tufig{flex-shrink:0;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .tughead{display:flex;align-items:center;gap:8px;margin:14px 0 4px;flex-wrap:wrap;}
+  .tugall{margin-left:auto;font-size:11px;white-space:nowrap;}
+  @media(max-width:520px){
+    .turow{flex-wrap:wrap;}
+    .tufig{width:100%;text-align:left;padding-left:32px;}
+    .tughead>strong{flex:1 1 calc(100% - 20px);}
+    .tugall{margin-left:auto;width:auto;}
+  }
+</style>
+<div class="mov" id="mTrueUp">
+  <div class="modal" style="max-width:760px;width:100%;max-height:90vh;display:flex;flex-direction:column;">
+    <h3 style="margin-bottom:10px;">🔄 Oracle True-Up</h3>
+    <div id="tuBody" style="overflow-y:auto;flex:1;min-height:0;padding-right:4px;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap;">
+      <button class="btn-ghost" onclick="tuPrintReview()" style="margin-right:auto;">🖨️ Print</button>
+      <button class="btn-ghost" onclick="tuClose()">Cancel</button>
+      <button class="btn-primary" id="tuApply" onclick="tuApply()">True up</button>
+    </div>
+  </div>
+</div>
 <div class="mov" id="mBoRemove">
   <div class="modal" style="max-width:640px;">
     <h3>🗑 Remove items not received</h3>
@@ -2116,7 +2186,7 @@ const SK={o:'f6_ord',k:'f6_kp',h:'f6_hi',b:'f6_ob',s:'f6_os',a:'f6_oa',lr:'f6_lr
 // client that hears a newer build force-reloads to pull the new file from
 // GitHub Pages — one sign-in on the new build converges the whole fleet
 // without anyone hand-refreshing. See the appBuild listener in fbInit().
-const APP_BUILD=2026082105;
+const APP_BUILD=2026092104;
 // Arriving on a cache-busted URL (?b=...) from a forced reload: clean the
 // address bar back to the bare path.
 try{ if(location.search.indexOf('?b=')===0) history.replaceState(null,'',location.pathname); }catch(e){}
@@ -2699,6 +2769,11 @@ function doLogin(){
     var ue=(typeof unseenFavEdits==='function')?unseenFavEdits():[];
     if(ue.length) toast('✏️ '+ue.length+' favorite'+(ue.length===1?'':'s')+' updated by an admin — open Favorites to review');
   }catch(e){} }, 1900);
+  // Drop focus BEFORE the login screen goes away. iOS zooms in when a field is
+  // focused and never zooms back out on its own; hiding the field while it still
+  // holds focus is what left the app stuck at ~120% after the intro.
+  try{ if(document.activeElement&&document.activeElement.blur) document.activeElement.blur(); }catch(e){}
+  try{ window.scrollTo(0,0); }catch(e){}
   try{ if(window.__fleetCapture) window.__fleetCapture(); }catch(e){}   // snapshot the menu for the decomposition intro (while still visible)
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('app').style.display='flex';
@@ -4266,7 +4341,7 @@ function renderHistory(){
   var events=[];
   resets.forEach(function(rec){
     var h=rec.h;
-    var oAt = h.weekEnded || Date.parse(String(h.date||'').replace(' (weekly-reset)','').replace(' (pre-reset)','')) || 0;
+    var oAt = h.weekEnded || h.at || Date.parse(String(h.date||'').replace(' (weekly-reset)','').replace(' (pre-reset)','')) || 0;
     events.push({t:'order', at:oAt, h:h, idx:rec.idx});
     (h.auditLog||[]).forEach(function(a){ events.push({t:'audit', at:(a.at||oAt), a:a, h:h}); });
   });
@@ -8199,12 +8274,33 @@ updateCustomPartsStatus();
 
 <!-- PRINT STYLES -->
 <style>
-@media(max-width:620px){
-  /* 16px form text stops iOS auto-zooming on focus (pinch-zoom stays allowed).
-     !important so scoped rules (.fg input:15px, .sbox input:13px, .bo-note-input:12px)
-     can't sneak back under 16 — that's exactly what made the login zoom again. */
-  input:not([type=checkbox]):not([type=radio]),select,textarea{font-size:16px !important;}
+/* 16px form text stops iOS auto-zooming on focus (pinch-zoom stays allowed).
+   !important so scoped rules (.fg input:15px, .sbox input:13px, .bo-note-input:12px)
+   can't sneak back under 16 — that's exactly what made the login zoom again.
+   Keyed off a coarse pointer, NOT a width: at <=620px a phone held sideways is
+   844px wide, dropped out of this rule, and zoomed on every field it touched. */
+@media(pointer:coarse),(max-width:620px){
+  /* SCREEN SIZE — scales the tab panels only. Never the top bar, the tab bar
+     or the modals: those are fixed-height chrome, so shrinking them costs tap
+     accuracy and buys no rows. .tabs lives INSIDE .content and goes fixed on
+     mobile, which is why the zoom is applied to .tab-content and not .content. */
+  .tab-content{zoom:var(--ui-scale,1);}
+  /* 16px is the iOS auto-zoom threshold and `zoom` scales the rendered size,
+     so the declared size has to be divided back out or shrinking the UI
+     re-introduces the very zoom bug we just fixed. */
+  input:not([type=checkbox]):not([type=radio]),select,textarea{font-size:calc(max(16px,1rem) / var(--ui-scale,1)) !important;}
   .qi,.fsel,.sbox{font-size:16px;}
+  /* WCAG 2.5.8 floor is 24px. 44px for anything with room around it, but NOT
+     for the in-row order controls: widening those pushed the meta line into
+     its own row and cost ~1.5 parts per screen, and the stepper and remove
+     are already 36-40px, well clear of the floor. */
+  .fb,.tab-btn{min-width:44px;min-height:44px;}
+  .tab-btn{min-height:52px;}
+  .topbar button,.mbtns button,.modal button,
+  .btn-ghost:not(.act-cluster *):not(.qwrap *),
+  .btn-primary:not(.act-cluster *):not(.qwrap *),
+  .btn-danger:not(.act-cluster *):not(.qwrap *){min-height:44px;min-width:44px;}
+  input[type=checkbox]{min-width:22px;min-height:22px;}
 }
 @media print {
   /* Hide the whole app by REMOVING it from layout (display:none), not just
@@ -8997,6 +9093,743 @@ if('serviceWorker' in navigator && (location.protocol==='https:'||location.hostn
   });
 }
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', _pwaRefreshCard); else _pwaRefreshCard();
+</script>
+<script>
+/* ===== SCREEN SIZE ==================================================
+   Crews asked to fit more parts on a phone screen. Three steps, cycled from
+   one button in the top bar, remembered on that device only. */
+var UI_SCALE_KEY='f6_uiscale', UI_SCALES=[1,0.9,0.8];
+function _uiScale(){ var v; try{ v=parseFloat(localStorage.getItem(UI_SCALE_KEY)); }catch(e){}
+  return (UI_SCALES.indexOf(v)>=0)?v:1; }
+function applyUiScale(v){
+  try{ document.documentElement.style.setProperty('--ui-scale', String(v)); }catch(e){}
+  try{ localStorage.setItem(UI_SCALE_KEY, String(v)); }catch(e){}
+  var b=document.getElementById('uiScaleBtn');
+  if(b){ b.textContent=Math.round(v*100)+'%'; b.classList.toggle('on', v!==1); }
+}
+function cycleUiScale(){
+  var i=UI_SCALES.indexOf(_uiScale());
+  var n=UI_SCALES[(i+1)%UI_SCALES.length];
+  applyUiScale(n);
+  if(typeof toast==='function') toast(n===1?'Normal size':'Fits more on screen · '+Math.round(n*100)+'%');
+}
+try{ document.documentElement.style.setProperty('--ui-scale', String(_uiScale())); }catch(e){}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){ applyUiScale(_uiScale()); });
+else applyUiScale(_uiScale());
+
+/* ===== ORACLE TRUE-UP (admin) =====================================
+   Upload Oracle's open transfer-order export; make Parts Received match it.
+   Columns are identified by what they CONTAIN (the export's header row does
+   not line up with its data). Nothing changes until the admin hits Apply;
+   the previous state is kept for one-click undo. */
+var _tu=null;
+/* Review groups, in the order they are shown and applied. [key, heading, dot
+   colour, sub-line, admin can tick] */
+var _TUGLEGACY=[['rm','Waiting to be received — not on Oracle (older true-ups)','#e8857a','',false]];
+var _TUG=[['ok','Correct — app and Oracle agree','var(--teal)','',false],
+  ['recv','Shipped or received in Oracle — mark received here','#37c8a0','Oracle says these left the warehouse. Ticking one records a real receipt against the oldest week still waiting on it, exactly as receiving it on the Parts Received tab would.',true],
+  ['chg','On order with a different quantity','#ecc94b','App will be set to Oracle\'s quantity.',true],
+  ['add','Oracle says on order — not in the app','#5db0e6','Will be added to Parts Received as Submitted.',true],
+  ['gone','Not on the Oracle export at all — you decide','#e8857a','Oracle\'s report only lists what is still open, so a part drops off it both when it arrives and when it is cancelled. The export cannot tell you which. Pick one per part; nothing is ticked for you.',true],
+  ['nocat','On Oracle but not in the parts catalog','#a98be0','Can\'t be shown until the part is in the Master List. Skipped.',false],
+  ['fresh','In this week\'s order','var(--muted)','Left alone — it moves to Parts Received at the weekly reset.',false]];
+var _TUORD={recv:0,chg:1,add:2,gone:3,nocat:4,fresh:5,ok:6};
+var TU_UNDO='f6_trueup_undo';
+function _tuClean(v){ if(v==null) return ''; if(v instanceof Date) return v; return String(v).replace(/ /g,' ').trim(); }
+
+/* ---- dates -------------------------------------------------------------
+   Built by hand rather than handed to new Date(). Oracle writes 21-SEP-2026,
+   which only V8 parses, and new Date('2026-09-21') is read as UTC — west of
+   Greenwich that shows the crew the day before. */
+var _TUMON={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+function _tuMk(y,mo,d){ var t=new Date(y,mo,d); return (t.getFullYear()===y&&t.getMonth()===mo&&t.getDate()===d)?t.getTime():0; }
+function _tuDate(v){
+  if(v instanceof Date) return isNaN(v)?0:_tuMk(v.getFullYear(),v.getMonth(),v.getDate());
+  var s=String(v==null?'':v).trim(); if(!s) return 0; var m;
+  if((m=/^(\d{1,2})[-\/ ]([A-Za-z]{3})[A-Za-z]*[-\/ ](\d{2}|\d{4})$/.exec(s))){      // 21-SEP-2026
+    var mo=_TUMON[m[2].toLowerCase()]; if(mo===undefined) return 0;
+    var y=+m[3]; if(m[3].length===2) y+=(y<70?2000:1900);
+    return _tuMk(y,mo,+m[1]); }
+  if((m=/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})(?:[T ](\d{2}):(\d{2})(?::\d{2})?(?:\.\d+)?\s*(Z|[+-]\d{2}:?\d{2})?)?$/.exec(s))){
+    if(m[6]){ var d=new Date(s); return isNaN(d)?0:_tuMk(d.getFullYear(),d.getMonth(),d.getDate()); }
+    return _tuMk(+m[1],+m[2]-1,+m[3]); }
+  if((m=/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/.exec(s))){                            // 9/21/2026
+    var yy=+m[3]; if(m[3].length===2) yy+=(yy<70?2000:1900);
+    return _tuMk(yy,+m[1]-1,+m[2]); }
+  return 0; }
+
+/* ---- fulfilment status -------------------------------------------------
+   Oracle writes these as sentences — "Partially shipped and partially
+   received", "Closed for Receiving" — so the words are matched anywhere in
+   the value, not just at the start.
+   Shipped counts as RECEIVED: once it leaves the warehouse it lands on the
+   pad, and nobody goes back into Oracle to tick it off.
+   Anything with "partially shipped" in it stays OPEN, because part of that
+   line is still in the warehouse and the export carries no split to go on. */
+function _tuStat(v){
+  var s=String(v==null?'':v).toLowerCase().replace(/[_\-]+/g,' ').replace(/\s+/g,' ').trim();
+  if(!s) return '';
+  if(/cancel|void|reject|obsolete|deleted/.test(s)) return 'void';
+  if(/partially shipped|partly shipped|part shipped/.test(s)) return 'part';
+  if(/partial/.test(s)&&!/shipped/.test(s)) return 'part';
+  if(/await|pending|ready to ship|not shipped|unshipped|back ?order|on order|approv|entered|booked|released|picked|staged|on hold|in process|in progress|requisition|interfaced/.test(s)) return 'open';
+  if(/receiv|deliver|fulfil|arrived|complete|closed|done/.test(s)) return 'recv';
+  if(/ship|transit|dispatch|en ?route/.test(s)) return 'recv';
+  if(/open/.test(s)) return 'open';
+  return ''; }
+function _tuStatLbl(k){ return k==='recv'?'shipped or received':k==='void'?'cancelled':k==='part'?'part shipped':'open'; }
+
+function _tuOrc(v){ if(v instanceof Date) return ''; var t=String(v); if(t.length>80) return ''; var m=/(?:^|[^\d.])(\d{8})(?![\d.])/.exec(' '+t); if(!m) return ''; return (gp(m[1])||/^10\d{6}$/.test(m[1]))?m[1]:''; }
+function _tuNum(v){ if(typeof v==='number') return v; var t=String(v).replace(/,/g,'').trim(); return /^-?\d+(\.\d+)?$/.test(t)?parseFloat(t):NaN; }
+// Any layout in: Excel (.xlsx/.xls), CSV / tab / text, Oracle XML rowsets, or rows pasted from the screen.
+function _tuXmlRows(txt){ var d=new DOMParser().parseFromString(txt,'application/xml'); if(d.getElementsByTagName('parsererror').length) return null;
+  var cnt={}, all=d.getElementsByTagName('*'); for(var i=0;i<all.length;i++){ var el=all[i]; if(el.children.length>=2){ cnt[el.tagName]=(cnt[el.tagName]||0)+1; } }
+  var tag=Object.keys(cnt).sort(function(a,b){return cnt[b]-cnt[a];})[0]; if(!tag||cnt[tag]<2) return null;
+  var names=[], rows=[], els=d.getElementsByTagName(tag);
+  for(var r=0;r<els.length;r++){ var row=[]; for(var k=0;k<els[r].children.length;k++){ var ch=els[r].children[k], ix=names.indexOf(ch.tagName); if(ix<0){ names.push(ch.tagName); ix=names.length-1; } row[ix]=ch.textContent; } rows.push(row); }
+  return [names].concat(rows); }
+function _tuLoad(name,sheets,pulled){ if(!sheets.length){ toast('No rows found in that file'); return; }
+  sheets.forEach(function(sh){ var n=0; sh.rows.forEach(function(r){ (r||[]).forEach(function(v){ if(v!=null&&_tuOrc(_tuClean(v))) n++; }); }); sh.hits=n; });
+  var best=sheets.slice().sort(function(a,b){return b.hits-a.hits;})[0];
+  _tu={file:name,sheets:sheets,sheet:best.name,rows:best.rows,map:null,incl:{},gone:{},pulled:(pulled||Date.now())}; _tuDetect(); _tuPlan(); _tuRender();
+  document.getElementById('mTrueUp').classList.add('show'); }
+function tuOpen(input){
+  var f=input.files&&input.files[0]; input.value=''; if(!f) return;
+  if(!user||user.role!=='Administrative'){ toast('Admins only'); return; }
+  var isXml=/\.xml$/i.test(f.name), rd=new FileReader();
+  rd.onload=function(ev){ try{
+      if(isXml){ var xr=_tuXmlRows(ev.target.result); if(xr){ _tuLoad(f.name,[{name:'XML',rows:xr}],f.lastModified); return; } }
+      if(typeof XLSX==='undefined'){ toast('Spreadsheet reader not loaded — check connection and reload'); return; }
+      var wb=isXml?XLSX.read(ev.target.result,{type:'string',cellDates:true}):XLSX.read(new Uint8Array(ev.target.result),{type:'array',cellDates:true});
+      _tuLoad(f.name,wb.SheetNames.map(function(n){ return {name:n,rows:XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:null})}; }),f.lastModified);
+    }catch(e){ console.error('trueup',e); toast('Could not read that file'); } };
+  if(isXml) rd.readAsText(f); else rd.readAsArrayBuffer(f);
+}
+function tuPaste(){ var ta=document.getElementById('tuPasteBox'), txt=ta?ta.value:''; if(!txt.trim()){ toast('Paste the rows first'); return; }
+  if(!user||user.role!=='Administrative'){ toast('Admins only'); return; }
+  try{ var rows; if(/^\s*</.test(txt)){ rows=_tuXmlRows(txt); }
+    if(!rows){ var dl=(txt.indexOf('\t')>=0)?'\t':((txt.split(';').length>txt.split(',').length)?';':','); rows=txt.split(/\r?\n/).map(function(l){ return dl==='\t'?l.split('\t'):(l.match(/("([^"]|"")*"|[^,;]*)([,;]|$)/g)||[]).map(function(c){return c.replace(/[,;]$/,'').replace(/^"|"$/g,'').replace(/""/g,'"');}); }); }
+    _tuLoad('Pasted rows',[{name:'Pasted',rows:rows}],Date.now()); ta.value=''; }catch(e){ console.error(e); toast('Could not read the pasted rows'); } }
+function tuSetSheet(n){ var sh=_tu.sheets.filter(function(x){return x.name===n;})[0]; if(!sh) return; _tu.sheet=n; _tu.rows=sh.rows; _tu.incl={}; _tu.gone={}; _tuDetect(); _tuPlan(); _tuRender(); }
+
+/* ---- which column is which --------------------------------------------
+   Decided by what the columns CONTAIN. In a real Oracle transfer-order
+   export the header labels sit in their own row at a different spacing from
+   the data, so a label can sit above the wrong column entirely — header text
+   is therefore only ever a tiebreak, never the deciding vote. */
+function _tuDetect(){
+  var rows=_tu.rows, nc=0; rows.forEach(function(r){ if(r&&r.length>nc) nc=r.length; });
+  var st=[]; for(var c=0;c<nc;c++) st.push({c:c,n:0,orc:0,num:0,int:0,date:0,uom:0,stat:0,statK:{},vals:{},max:0,hdr:'',hdrN:0});
+  var UOM=/^(each|ea|gallon|gal|foot|ft|feet|box|bx|pack|pk|pair|pr|roll|rl|case|cs|pound|lb|kit|set|quart|qt|liter|l|meter|m|inch|in|dozen|dz|bag|can|drum|pail|tube)$/i;
+  // A row carrying no Oracle number anywhere is a title or header row: its text
+  // is collected as a hint for its column and kept out of the column's tallies,
+  // so a two-line export is not outvoted by its own headings.
+  rows.forEach(function(r){ if(!r) return;
+    var isData=false; for(var c0=0;c0<nc;c0++){ if(_tuOrc(_tuClean(r[c0]))){ isData=true; break; } }
+    for(var c=0;c<nc;c++){ var v=_tuClean(r[c]); if(v==='') continue; var s=st[c];
+      var t=(v instanceof Date)?'':String(v), num=_tuNum(v);
+      if(!isData){ if(t&&isNaN(num)){ s.hdr+=' '+t.toLowerCase(); s.hdrN++; } continue; }
+      s.n++;
+      if(v instanceof Date||_tuDate(v)) s.date++;
+      else if(_tuOrc(v)) s.orc++;
+      else if(!isNaN(num)){ s.num++; if(num>s.max) s.max=num; if(num>0&&num===Math.floor(num)) s.int++; }
+      else if(UOM.test(t)) s.uom++;
+      else { var k=_tuStat(t); if(k){ s.stat++; s.statK[k]=1; } }
+      if(t) s.vals[t]=1; } });
+  function top(k,pref){ var b=null; st.forEach(function(s){ if(!(s[k]>0&&s[k]>=s.n*0.6)) return; var sc=s[k]+(pref&&pref.test(s.hdr)?s.n*0.5:0); if(!b||sc>b.sc) b={c:s.c,sc:sc}; }); return b?b.c:-1; }
+  // Status: prefer the column that actually DISTINGUISHES states. A "Line
+  // Status" column reading "Open" on every row is a valid status column and a
+  // useless one; the Fulfillment Status beside it is the one worth reading.
+  function topStat(){ var b=null; st.forEach(function(s){ if(!(s.stat>0&&s.stat>=s.n*0.6)) return;
+      var sc=Object.keys(s.statK).length*1000 + Object.keys(s.vals).length*10 + (/fulfil|status|state/.test(s.hdr)?5:0);
+      if(!b||sc>b.sc) b={c:s.c,sc:sc}; }); return b?b.c:-1; }
+  var m={orc:top('orc',/item|oracle|part/),uom:top('uom'),date:top('date',/deliver|due|need|promis|expect/),stat:topStat(),qty:-1,to:-1,recv:-1};
+  var cand=st.filter(function(s){ return s.c!==m.orc&&s.n>0&&s.num>=s.n*0.6; });
+  var isQ=function(x){return /qty|quantit/.test(x.hdr);}, isRS=function(x){return /receiv|ship|deliver/.test(x.hdr);};
+  // Transfer-order number first, so it is off the table before quantity is
+  // chosen — otherwise a long TO column can win the "most varied" tiebreak.
+  cand.forEach(function(s){ if(m.to>=0) return; var ks=Object.keys(s.vals), big=ks.filter(function(k){return k.replace(/\D/g,'').length>=5;}).length; if(ks.length&&big>=ks.length*0.8) m.to=s.c; });
+  var hq=cand.filter(function(x){return isQ(x)&&!isRS(x)&&x.c!==m.to;}); if(hq.length===1) m.qty=hq[0].c;
+  var hr=cand.filter(function(x){return isQ(x)&&/receiv/.test(x.hdr)&&x.c!==m.qty&&x.c!==m.to;}); if(hr.length===1&&m.qty>=0) m.recv=hr[0].c;
+  // Beside the UOM is the strongest signal there is: "10 | Each".
+  if(m.qty<0&&m.uom>=0){ [m.uom-1,m.uom-2,m.uom+1].some(function(c){ if(c!==m.to&&cand.some(function(s){return s.c===c&&!(isQ(s)&&isRS(s));})){ m.qty=c; return true; } return false; }); }
+  // Last resort. Ranked on the largest value seen, NOT on how many distinct
+  // values there are: a "Line" column counts 1,2,3… and would otherwise beat
+  // the quantity column on variety alone.
+  if(m.qty<0){ var q=cand.filter(function(s){return s.c!==m.to&&s.c!==m.recv;}).sort(function(a,b){
+      var ha=(isQ(a)&&!isRS(a))?1:0, hb=(isQ(b)&&!isRS(b))?1:0; return hb-ha||b.max-a.max||Object.keys(b.vals).length-Object.keys(a.vals).length; })[0]; if(q) m.qty=q.c; }
+  // a layout the admin corrected before wins, as long as its Oracle # column still holds Oracle numbers
+  try{ var sv=JSON.parse(localStorage.getItem('f6_trueup_map')||'null'); if(sv&&sv.nc===nc&&sv.map&&sv.map.orc>=0&&st[sv.map.orc]&&st[sv.map.orc].orc>=st[sv.map.orc].n*0.6){ m=sv.map; if(!('recv' in m)) m.recv=-1; _tu.remembered=true; } }catch(e){}
+  _tu.map=m; _tu.nc=nc; _tu.st=st;
+}
+function _tuSample(c){ if(c<0) return ''; for(var i=0;i<_tu.rows.length;i++){ var r=_tu.rows[i]; if(!r) continue;
+    var isData=false; for(var k=0;k<_tu.nc;k++){ if(_tuOrc(_tuClean(r[k]))){ isData=true; break; } }
+    if(!isData) continue; var v=_tuClean(r[c]); if(v==='') continue;
+    return (v instanceof Date)?v.toLocaleDateString():String(v); } return ''; }
+function _tuLastRecvIndex(){
+  var ix={};
+  for(var i=0;i<hist.length;i++){
+    var items=(hist[i]&&hist[i].items)||[];
+    for(var j=0;j<items.length;j++){
+      var it=items[j]; if(!it||!it.oracle||!it.receivedAt) continue;
+      if(!(it.receivedQty>0) && (it.auditStatus||'')!=='received') continue;
+      if(it.receivedAt>(ix[it.oracle]||0)) ix[it.oracle]=it.receivedAt;
+    }
+  }
+  return ix;
+}
+/* What this app believes is on order for a part. A re-request still marked
+   pending has not reached the EFS, so Oracle cannot know about it and it is
+   left out of the comparison — and left alone when the change is applied.
+   Missing this is how a true-up used to double-count: it set the awaiting
+   line to Oracle's total, and the Monday reset then added the re-request on
+   top of it. */
+function _tuAppQty(o){
+  var aw=backorderFlag[o]?(order[o]||0):0;
+  var rq=(typeof reorderQty!=='undefined'&&reorderQty[o])||0;
+  var sub=(rq>0&&typeof reoStat==='function'&&reoStat(o)==='submitted')?rq:0;
+  return {aw:aw,rq:rq,sub:sub,total:aw+sub};
+}
+function _tuPlan(){
+  var m=_tu.map, O={}; _tu.lines=0; _tu.voided=0; _tu.partial=0;
+  if(m.orc<0||m.qty<0){ _tu.plan=[]; return; }
+  _tu.rows.forEach(function(r){ if(!r) return; var o=_tuOrc(_tuClean(r[m.orc])); if(!o) return;
+    var q=_tuNum(_tuClean(r[m.qty])); if(!(q>0)) return;
+    var sRaw=m.stat>=0?String(_tuClean(r[m.stat])):'', k=_tuStat(sRaw);
+    if(k==='void'){ _tu.voided++; return; }
+    var e=O[o]||(O[o]={qty:0,rcv:0,tos:{},due:0,partial:false,lines:0,uom:'',sts:{}});
+    e.lines++; _tu.lines++;
+    if(sRaw) e.sts[sRaw]=1;
+    // A quantity Oracle has already booked in is in hand whatever the line says.
+    if(m.recv>=0){ var rc=_tuNum(_tuClean(r[m.recv])); if(rc>0){ var got=Math.min(rc,q); e.rcv+=got; q-=got; } }
+    if(q>0){ if(k==='recv') e.rcv+=q; else e.qty+=q; }
+    if(k==='part'){ e.partial=true; _tu.partial++; }
+    if(m.to>=0){ var t=String(_tuClean(r[m.to])); if(t) e.tos[t]=1; }
+    if(m.uom>=0&&!e.uom){ var uu=String(_tuClean(r[m.uom])); if(uu) e.uom=_tuUomCode(uu); }
+    var d=m.date>=0?_tuDate(_tuClean(r[m.date])):0; if(d&&(!e.due||d<e.due)) e.due=d; });
+  var plan=[];
+  Object.keys(O).forEach(function(o){ var e=O[o], p=gp(o), a=_tuAppQty(o),
+      fresh=(order[o]||0)>0&&!backorderFlag[o], k;
+    if(!p) k='nocat';
+    else if(fresh) k='fresh';
+    else if(e.rcv>0&&a.aw>0) k='recv';           // something to book in (may also trim the remainder)
+    else if(!a.total) k=(e.qty>0)?'add':null;    // already settled here and settled in Oracle — nothing to do
+    else if(e.qty!==a.total) k='chg';
+    else k='ok';
+    if(!k) return;
+    plan.push({o:o,k:k,p:p,oq:e.qty,rcv:e.rcv,aq:a.total,aw:a.aw,reo:a.sub,e:e}); });
+  Object.keys(order).forEach(function(o){ if(backorderFlag[o]&&(order[o]||0)>0&&!O[o]){
+    var a=_tuAppQty(o); plan.push({o:o,k:'gone',p:gp(o),oq:0,rcv:0,aq:a.total,aw:a.aw,reo:a.sub,e:null}); } });
+  // The export is a snapshot of Oracle at one moment. Anything the app changed
+  // after it was pulled would be undone by trueing up to it, so flag those rows
+  // and leave them unticked.
+  var T=_tu.pulled||0, RX=_tuLastRecvIndex();
+  plan.forEach(function(x){
+    x.stale='';
+    if(!T) return;
+    var tt=(orderTouched&&orderTouched[x.o])||0;
+    if(x.k==='add'||x.k==='chg'||x.k==='recv'){
+      var rt=RX[x.o]||0;
+      if(rt>T) x.stale='received here '+new Date(rt).toLocaleDateString()+', after this export was pulled';
+      else if(tt>T) x.stale='edited here '+new Date(tt).toLocaleDateString()+', after this export was pulled';
+    } else if(x.k==='gone'){
+      var ad=orderAdded[x.o]||0;
+      if(ad>T) x.stale='requested here '+new Date(ad).toLocaleDateString()+', after this export was pulled';
+      else if(tt>T) x.stale='edited here '+new Date(tt).toLocaleDateString()+', after this export was pulled';
+    }
+  });
+  plan.sort(function(a,b){ return _TUORD[a.k]-_TUORD[b.k]||(a.o<b.o?-1:1); });
+  plan.forEach(function(x){ if(!(x.o in _tu.incl)) _tu.incl[x.o]=(x.k==='add'||x.k==='chg'||x.k==='recv')&&!x.stale; });
+  _tu.plan=plan;
+}
+function _tuColOpts(sel){ var h='<option value="-1">— none —</option>'; for(var c=0;c<_tu.nc;c++){ var ex=_tuSample(c); h+='<option value="'+c+'"'+(c===sel?' selected':'')+'>Col '+_xlsxColLetter(c)+(ex?' · '+e(ex.slice(0,18)):'')+'</option>'; } return h; }
+function _tuPad(n){ return (n<10?'0':'')+n; }
+function _tuDtLocal(ms){ var d=new Date(ms); return d.getFullYear()+'-'+_tuPad(d.getMonth()+1)+'-'+_tuPad(d.getDate())+'T'+_tuPad(d.getHours())+':'+_tuPad(d.getMinutes()); }
+function _tuAge(ms){ var d=Date.now()-ms;
+  if(d<-60000) return 'dated in the future';
+  var h=Math.floor(d/3600000);
+  if(h<1) return 'pulled less than an hour ago';
+  if(h<24) return 'pulled '+h+' hour'+(h===1?'':'s')+' ago';
+  var dd=Math.round(h/24); return 'pulled '+dd+' day'+(dd===1?'':'s')+' ago'; }
+function _tuLastTrueUp(){ var t=0; for(var i=0;i<hist.length;i++){ var u=hist[i]&&hist[i].trueup; if(u&&u.at>t) t=u.at; } return t; }
+function tuSetPulled(v){ var t=v?new Date(v).getTime():0; if(!t||isNaN(t)) return; _tu.pulled=t; _tu.incl={}; _tuPlan(); _tuRender(); }
+function tuSetCol(k,v){ _tu.map[k]=parseInt(v,10); _tu.touched=true; _tu.incl={}; _tu.gone={}; _tuPlan(); _tuRender(); }
+function tuTog(o,on){ _tu.incl[o]=!!on; _tuCount(); }
+function tuAll(k,on){ _tu.plan.forEach(function(x){ if(x.k===k){ _tu.incl[x.o]=on; if(k==='gone'&&on&&!_tu.gone[x.o]) _tu.gone[x.o]='recv'; } }); _tuRender(); }
+// A part missing from the export either arrived or was cancelled, and the
+// export cannot say which. One choice per part, and picking one ticks it.
+function tuGone(o,how){ _tu.gone[o]=how; _tu.incl[o]=true; _tuRender(); }
+function _tuActive(x){ return x.k==='add'||x.k==='chg'||x.k==='recv'||(x.k==='gone'&&_tu.gone[x.o]); }
+function _tuCount(){ var n=_tu.plan.filter(function(x){return _tu.incl[x.o]&&_tuActive(x);}).length; var b=document.getElementById('tuApply'); if(b){ b.textContent='Approve & true up · '+n+' change'+(n===1?'':'s'); b.disabled=!n; b.style.opacity=n?'1':'.45'; } }
+function _tuRender(){
+  var m=_tu.map, P=_tu.plan, by={}; P.forEach(function(x){ (by[x.k]=by[x.k]||[]).push(x); });
+  var nStale=P.filter(function(x){return x.stale;}).length;
+  var lastTu=_tuLastTrueUp(), staleWarn=(lastTu&&_tu.pulled&&_tu.pulled<lastTu);
+  var sel=function(lbl,k){ var ex=_tuSample(m[k]);
+    return '<label style="font-size:10px;color:var(--muted2);text-transform:uppercase;letter-spacing:.8px;display:flex;flex-direction:column;gap:3px;">'+lbl+
+      '<select class="fsel" style="font-size:16px;padding:8px;min-height:44px;" onchange="tuSetCol(\''+k+'\',this.value)">'+_tuColOpts(m[k])+'</select>'+
+      '<span style="font-size:11px;color:'+(m[k]<0?'var(--muted2)':'var(--teal)')+';text-transform:none;letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(m[k]<0?'not used':'reading “'+e(ex.slice(0,22))+'”')+'</span></label>'; };
+  var statBad=(m.stat>=0&&_tu.st&&_tu.st[m.stat]&&Object.keys(_tu.st[m.stat].vals).length<2);
+  var needCols=(m.orc<0||m.qty<0||m.stat<0||statBad);
+  var h='<div style="font-size:12px;color:var(--muted);margin-bottom:10px;">'+e(_tu.file)+' · <strong style="color:var(--text);">'+_tu.lines+'</strong> open lines · <strong style="color:var(--text);">'+P.filter(function(x){return x.e;}).length+'</strong> parts'+(_tu.voided?' · '+_tu.voided+' cancelled line'+(_tu.voided===1?'':'s')+' ignored':'')+'</div>'+
+    '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;padding:10px 12px;background:var(--nav);border:1px solid var(--border);border-radius:8px;">'+'<label style="font-size:10px;color:var(--muted2);text-transform:uppercase;letter-spacing:.8px;display:flex;flex-direction:column;gap:3px;">When this was pulled from Oracle<input type="datetime-local" class="fsel" style="font-size:16px;padding:8px;min-height:44px;" value="'+_tuDtLocal(_tu.pulled||Date.now())+'" onchange="tuSetPulled(this.value)" /></label>'+'<span style="font-size:12px;flex:1;min-width:180px;color:'+(nStale?'#f0b040':'var(--muted)')+';">'+e(_tuAge(_tu.pulled||Date.now()))+(nStale?' · <strong>'+nStale+'</strong> row'+(nStale===1?'':'s')+' changed here since then — left unticked':'')+'</span>'+'</div>'+(staleWarn?('<div class="warnbox" style="margin-bottom:12px;">⚠ This export was pulled <strong>before</strong> the last true-up on '+new Date(lastTu).toLocaleString()+'. It is almost certainly out of date — pull a fresh one from Oracle.</div>'):'')+
+    '<details'+(needCols?' open':'')+' style="margin-bottom:14px;"><summary style="font-size:11.5px;color:'+(needCols?'#f0b040':'var(--muted)')+';cursor:pointer;padding:10px 12px;background:var(--nav);border:1px solid var(--border);border-radius:8px;list-style:none;">'+
+      (needCols?'⚠ Check the columns — ':'Reading ')+'<strong style="color:var(--text);">Oracle #</strong> from '+(m.orc<0?'nothing':'col '+_xlsxColLetter(m.orc))+
+      ', <strong style="color:var(--text);">qty</strong> from '+(m.qty<0?'nothing':'col '+_xlsxColLetter(m.qty))+
+      ', <strong style="color:var(--text);">status</strong> from '+(m.stat<0?'nothing':'col '+_xlsxColLetter(m.stat))+
+      ' <span style="color:var(--teal);">· change</span></summary>'+
+    '<div style="font-size:11px;color:var(--muted2);margin:10px 0 6px;">The quoted value under each is the first row it found there.</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;padding:10px;background:var(--nav);border:1px solid var(--border);border-radius:8px;">'+sel('Oracle #','orc')+sel('Quantity','qty')+sel('Status','stat')+sel('Expected date','date')+sel('Transfer order','to')+sel('Already received (optional)','recv')+(_tu.sheets.length>1?'<label style="font-size:10px;color:var(--muted2);text-transform:uppercase;letter-spacing:.8px;display:flex;flex-direction:column;gap:3px;">Sheet<select class="fsel" style="font-size:16px;padding:8px;min-height:44px;" onchange="tuSetSheet(this.value)">'+_tu.sheets.map(function(x){return '<option'+(x.name===_tu.sheet?' selected':'')+'>'+e(x.name)+'</option>';}).join('')+'</select></label>':'')+'</div>'+(_tu.remembered?'<div style="font-size:11px;color:var(--muted2);margin:8px 0 0;">Using the column choices saved from the last true-up with this layout.</div>':'')+'</details>';
+  if(m.orc<0||m.qty<0){ h+='<div class="warnbox">Couldn\'t find an Oracle # column and a quantity column. Pick them above.</div>'; }
+  else if(m.stat<0){ h+='<div class="warnbox" style="margin-bottom:12px;">No status column found, so every line counts as still waiting. If your export has a <strong>Fulfillment Status</strong>, pick it above — that is what says which parts have shipped.</div>'; }
+  else if(statBad){ h+='<div class="warnbox" style="margin-bottom:12px;">The status column reads “'+e(_tuSample(m.stat))+'” on every row, so it can\'t tell shipped from waiting. If there is a <strong>Fulfillment Status</strong> column too, pick that one instead.</div>'; }
+  if(_tu.partial){ h+='<div style="font-size:11.5px;color:#ecc94b;margin-bottom:12px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--nav);">'+_tu.partial+' line'+(_tu.partial===1?' is':'s are')+' <strong>part shipped</strong>. Oracle doesn\'t say how much, so those are left as still waiting and marked below — set the count by hand once you know it.</div>'; }
+  var G=_TUG;
+  G.forEach(function(g){ var L=by[g[0]]||[]; if(!L.length) return;
+    h+='<div class="tughead"><span style="width:9px;height:9px;border-radius:50%;background:'+g[2]+';flex-shrink:0;"></span><strong style="font-size:12.5px;">'+g[1]+'</strong><span style="font-size:11px;color:var(--muted);">'+L.length+'</span>'+(g[4]&&g[0]!=='gone'?'<span class="tugall"><a href="#" onclick="tuAll(\''+g[0]+'\',true);return false;" style="color:var(--teal);padding:8px 4px;">all</a> · <a href="#" onclick="tuAll(\''+g[0]+'\',false);return false;" style="color:var(--muted);padding:8px 4px;">none</a></span>':'')+'</div>'+(g[3]?'<div style="font-size:11px;color:var(--muted2);margin-bottom:6px;line-height:1.5;">'+g[3]+'</div>':'');
+    h+='<details'+(g[0]==='ok'?'':' open')+'><summary style="font-size:11px;color:var(--muted);cursor:pointer;margin-bottom:6px;padding:6px 0;">Show '+L.length+' part'+(L.length===1?'':'s')+'</summary><div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">'+L.map(function(x){ var tos=x.e?Object.keys(x.e.tos):[], meta=[];
+      if(tos.length) meta.push('TO '+tos.slice(0,3).join(', ')+(tos.length>3?' +'+(tos.length-3):''));
+      if(x.e&&x.e.due) meta.push('due '+new Date(x.e.due).toLocaleDateString());
+      if(x.reo) meta.push('<span style="color:#5db0e6;">+'+x.reo+' re-requested this week, left alone</span>');
+      var sts=x.e?Object.keys(x.e.sts):[]; if(sts.length&&x.k!=='ok') meta.push('Oracle: '+e(sts.slice(0,2).join(' / ')));
+      if(x.stale) meta.push('<span style="color:#f0b040;font-weight:700;">⚠ '+e(x.stale)+'</span>');
+      if(x.e&&x.e.partial) meta.push('<span style="color:#ecc94b;">part shipped — Oracle shows the whole line, set the count by hand</span>');
+      var right = x.k==='recv'
+        ? '<span style="color:var(--muted);">app '+x.aq+'</span> → <strong style="color:#37c8a0;">receive '+Math.min(x.rcv,x.aw)+'</strong>'+(x.oq?'<span style="color:var(--muted);">, '+x.oq+' left</span>':'')
+        : '<span style="color:var(--muted);">app '+x.aq+'</span> → <strong style="color:var(--text);">'+x.oq+'</strong>';
+      if(x.k==='gone'){
+        var ch=_tu.gone[x.o], bt=function(v,lbl,col){ return '<button type="button" onclick="tuGone(\''+x.o+'\',\''+v+'\')" style="min-height:40px;padding:0 12px;font-size:12px;border-radius:6px;cursor:pointer;border:1px solid '+(ch===v?col:'var(--border)')+';background:'+(ch===v?col:'transparent')+';color:'+(ch===v?'#08131a':'var(--muted)')+';font-weight:'+(ch===v?'700':'500')+';">'+lbl+'</button>'; };
+        return '<div class="turow" style="flex-wrap:wrap;">'+
+          '<span style="flex:1;min-width:150px;"><span style="display:block;font-weight:600;color:var(--text);">'+(x.p?e(x.p[2].slice(0,80)):'Oracle # '+x.o)+'</span><span style="display:block;font-size:10.5px;color:var(--muted);margin-top:2px;"><strong style="color:var(--teal);">'+x.o+'</strong> · app '+x.aq+(meta.length?' · '+meta.join(' · '):'')+'</span></span>'+
+          '<span style="display:flex;gap:6px;flex-shrink:0;">'+bt('recv','Received','#37c8a0')+bt('void','Cancelled','#e8857a')+'</span></div>'; }
+      return '<label class="turow" style="cursor:'+(g[4]?'pointer':'default')+';">'+
+        (g[4]?'<input type="checkbox" '+(_tu.incl[x.o]?'checked':'')+' onchange="tuTog(\''+x.o+'\',this.checked)" style="width:22px;height:22px;flex-shrink:0;" />':'')+
+        '<span style="flex:1;min-width:0;"><span style="display:block;font-weight:600;color:var(--text);">'+(x.p?e(x.p[2].slice(0,80)):'Oracle # '+x.o)+'</span><span style="display:block;font-size:10.5px;color:var(--muted);margin-top:2px;"><strong style="color:var(--teal);">'+x.o+'</strong>'+(meta.length?' · '+meta.join(' · '):'')+'</span></span>'+
+        '<span class="tufig">'+right+'</span></label>'; }).join('')+'</div></details>'; });
+  document.getElementById('tuBody').innerHTML=h; _tuCount();
+}
+function tuClose(){ document.getElementById('mTrueUp').classList.remove('show'); _tu=null; }
+/* Receipts are recorded through the app's own FIFO allocator, so a true-up
+   receipt is indistinguishable from one logged on the Parts Received tab and
+   the weekly audit adds up. The allocation is captured first so it can be
+   reversed exactly on undo. */
+function _tuRecvApply(o,qty,note){
+  var before=[];
+  for(var i=0;i<hist.length;i++){ var items=(hist[i]&&hist[i].items)||[];
+    for(var j=0;j<items.length;j++){ if(items[j].oracle===o) before.push([i,j,items[j].receivedQty||0,items[j].auditStatus||'',items[j].status||'']); } }
+  var ok=_recordReceiptToHist(o,qty,note);
+  return {ok:ok,before:before};
+}
+function tuApply(){
+  if(!_tu||!user||user.role!=='Administrative') return;
+  var L=_tu.plan.filter(function(x){return _tu.incl[x.o]&&_tuActive(x);}); if(!L.length) return;
+  var nA=0,nC=0,nR=0,nG=0,nV=0;
+  L.forEach(function(x){ if(x.k==='add')nA++; else if(x.k==='chg')nC++; else if(x.k==='recv')nR++;
+    else if(_tu.gone[x.o]==='recv'){nG++;} else {nV++;} });
+  var msg='Make Parts Received match Oracle?\n\n';
+  if(nR) msg+=nR+' marked received (shipped in Oracle)\n';
+  if(nG) msg+=nG+' marked received (gone from the export)\n';
+  if(nC) msg+=nC+' quantity change'+(nC===1?'':'s')+'\n';
+  if(nA) msg+=nA+' added\n';
+  if(nV) msg+=nV+' cleared as cancelled\n';
+  msg+='\nThis changes it for the whole fleet. You can undo it from the Admin tab.';
+  if(!confirm(msg)) return;
+  var now=Date.now(), snap=[], undo={at:now,by:user.name,parts:{},recv:{},histLen:hist.length};
+  // Per-part before-state, not a whole-database snapshot: undoing a true-up
+  // must not roll back what everyone else did in the meantime.
+  L.forEach(function(x){ var o=x.o;
+    undo.parts[o]={q:(order[o]===undefined?null:order[o]),bf:!!backorderFlag[o],st:orderStatus[o]||null,
+                   ad:orderAdded[o]||null,nt:orderNotes[o]||null,by:orderBy[o]||null,
+                   rq:(reorderQty[o]===undefined?null:reorderQty[o]),rs:reorderStatus[o]||null}; });
+  try{ localStorage.setItem(TU_UNDO,JSON.stringify({at:now,by:user.name,ref:'hist'})); }catch(e){}
+  try{ localStorage.setItem('f6_trueup_map',JSON.stringify({nc:_tu.nc,map:_tu.map})); }catch(e){}
+  L.forEach(function(x){ var o=x.o, nm=x.p?x.p[2]:'Oracle #'+o, keepReo=x.reo||0;
+    if(x.k==='gone'&&_tu.gone[o]==='void'){
+      _resolveCarried(o); writeLog('TRUE-UP',o,nm,x.aq+' → 0 (cancelled — not on the Oracle export)',user.name,user.role); return; }
+    if(x.k==='gone'){                                   // gone from the export, admin says it arrived
+      var gq=x.aw||0; if(gq>0){ var ga=_tuRecvApply(o,gq,'Oracle true-up — no longer on the export'); undo.recv[o]=ga.before; }
+      _resolveCarried(o); writeLog('TRUE-UP',o,nm,gq+' received (no longer on the Oracle export)',user.name,user.role); return; }
+    if(x.k==='recv'){
+      var rq=Math.min(x.rcv,x.aw||0);
+      if(rq>0){ var al=_tuRecvApply(o,rq,'Oracle true-up — shipped'); undo.recv[o]=al.before; }
+      var rem=Math.max(0,x.oq-keepReo);
+      if(rem<=0){ _resolveCarried(o); }
+      else { order[o]=rem; backorderFlag[o]=true; orderStatus[o]='submitted'; if(!orderAdded[o]) orderAdded[o]=now; }
+      writeLog('TRUE-UP',o,nm,'received '+rq+(rem>0?(' · '+rem+' still awaiting'):' · cleared')+' (Oracle: shipped)',user.name,user.role); return; }
+    // add / chg — the re-request is Oracle's too, so only the awaiting line moves.
+    var want=Math.max(0,x.oq-keepReo);
+    if(want<=0){ _resolveCarried(o); writeLog('TRUE-UP',o,nm,x.aq+' → '+x.oq+' (covered by this week\'s re-request)',user.name,user.role); return; }
+    order[o]=want; backorderFlag[o]=true; orderStatus[o]='submitted'; if(!orderAdded[o]) orderAdded[o]=now;
+    var tos=Object.keys(x.e.tos), n=orderNotes[o];
+    if(!n||(n&&n.by==='Oracle true-up')){ var t=[]; if(tos.length)t.push('TO '+tos.slice(0,4).join(', ')); if(x.e.due)t.push('due '+new Date(x.e.due).toLocaleDateString()); if(t.length) orderNotes[o]={by:'Oracle true-up',text:t.join(' · '),at:now}; }
+    if(!_weekOf(o)) snap.push({oracle:o,qty:want,status:'submitted',dept:deptOf(o),addedAt:orderAdded[o],auditStatus:'not_received'});
+    writeLog('TRUE-UP',o,nm,x.aq+' → '+want,user.name,user.role); });
+  var ov={at:now,by:user.name,file:_tu.file,lines:_tu.lines,pulled:_tu.pulled||0,g:{},gaps:{},undo:undo};
+  _tu.plan.forEach(function(x){ if(x.k!=='nocat'||!x.e) return;
+    ov.gaps[x.o]={qty:x.oq,uom:x.e.uom||'Ea',tos:Object.keys(x.e.tos),due:x.e.due||0,at:now}; });
+  _tu.plan.forEach(function(x){ (ov.g[x.k]=ov.g[x.k]||[]).push([x.o,x.aq,x.k==='recv'?Math.min(x.rcv,x.aw):x.oq,(_tu.incl[x.o]&&_tuActive(x))?1:0,x.k==='gone'?(_tu.gone[x.o]||''):'']); });
+  hist.push({date:new Date(now).toLocaleString()+' (Oracle true-up) (pre-reset)',at:now,submittedBy:user.name,role:user.role,items:snap,auditLog:[],trueup:ov});
+  save(); renderAll(); if(typeof renderAdmin==='function') renderAdmin(); tuUndoState();
+  toast('Parts Received now matches Oracle — '+L.length+' change'+(L.length===1?'':'s')); tuClose();
+}
+/* Undo reads the before-state out of the History record, which syncs, so the
+   admin who applied a true-up on a phone can undo it from a laptop. */
+function _tuUndoRec(){ for(var i=hist.length-1;i>=0;i--){ var h=hist[i];
+    if(h&&h.trueup&&h.trueup.undo&&!h.trueup.undone) return {i:i,h:h,u:h.trueup.undo}; } return null; }
+function tuUndoState(){ var el=document.getElementById('tuUndo'); if(!el) return; var r=_tuUndoRec();
+  el.style.display=r?'':'none'; if(r) el.textContent='↩ Undo true-up from '+new Date(r.u.at).toLocaleString()+(r.u.by?' by '+r.u.by:''); }
+function tuUndo(){ var r=_tuUndoRec(); if(!r){ toast('Nothing to undo'); return; }
+  if(!user||user.role!=='Administrative'){ toast('Admins only'); return; }
+  if(!confirm('Put Parts Received back to how it was before the true-up on '+new Date(r.u.at).toLocaleString()+'?\n\nOnly the parts that true-up touched are changed. Anything received since then on those parts is cleared.')) return;
+  var u=r.u;
+  Object.keys(u.recv||{}).forEach(function(o){ (u.recv[o]||[]).forEach(function(b){
+    var h=hist[b[0]], it=h&&h.items&&h.items[b[1]]; if(!it||it.oracle!==o) return;
+    it.receivedQty=b[2]; it.auditStatus=b[3]; it.status=b[4];
+    if(!b[2]){ delete it.receivedBy; delete it.receivedAt; } }); });
+  Object.keys(u.parts||{}).forEach(function(o){ var p=u.parts[o];
+    if(p.q===null) delete order[o]; else order[o]=p.q;
+    if(p.bf) backorderFlag[o]=true; else delete backorderFlag[o];
+    if(p.st===null) delete orderStatus[o]; else orderStatus[o]=p.st;
+    if(p.ad===null) delete orderAdded[o]; else orderAdded[o]=p.ad;
+    if(p.nt===null) delete orderNotes[o]; else orderNotes[o]=p.nt;
+    if(p.by===null) delete orderBy[o]; else orderBy[o]=p.by;
+    if(p.rq===null) delete reorderQty[o]; else reorderQty[o]=p.rq;
+    if(p.rs===null) delete reorderStatus[o]; else reorderStatus[o]=p.rs; });
+  if(hist.length>u.histLen+1) { /* newer records exist — leave them */ }
+  r.h.trueup.undone={at:Date.now(),by:user.name};
+  try{ localStorage.removeItem(TU_UNDO); }catch(e){}
+  writeLog('TRUE-UP','','Undo Oracle true-up','',user.name,user.role); save(); renderAll(); if(typeof renderAdmin==='function') renderAdmin(); tuUndoState(); toast('True-up undone'); }
+(function(){ var _ra=window.renderAdmin; if(typeof _ra==='function'){ window.renderAdmin=function(){ _ra.apply(this,arguments); try{tuUndoState();}catch(e){} try{renderTuGaps();}catch(e){} try{_tuSecHelpInject();}catch(e){} }; } })();
+
+function _tuOverviewHtml(ov,print){
+  var c=print?{t:'#000',m:'#444',b:'#bbb'}:{t:'var(--text)',m:'var(--muted)',b:'var(--border)'};
+  var h='<div style="font-size:12px;color:'+c.m+';margin-bottom:8px;">'+e(ov.file||'')+' · '+ov.lines+' open Oracle lines'+(ov.pulled?' · pulled from Oracle '+new Date(ov.pulled).toLocaleString():'')+' · approved by <strong style="color:'+c.t+';">'+e(ov.by||'—')+'</strong> · '+new Date(ov.at).toLocaleString()+'</div>';
+  _TUG.concat(_TUGLEGACY).forEach(function(g){ var L=(ov.g&&ov.g[g[0]])||[]; if(!L.length) return; var act=g[4], done=L.filter(function(r){return r[3];}).length;
+    var head='<strong style="color:'+c.t+';">'+g[1]+'</strong> <span style="color:'+c.m+';">· '+L.length+(act?' · '+done+' applied'+(done<L.length?', '+(L.length-done)+' left as-is':''):'')+'</span>';
+    var rows=L.map(function(r){ var p=gp(r[0]); return '<tr><td style="padding:3px 8px 3px 0;border-bottom:1px solid '+c.b+';white-space:nowrap;font-variant-numeric:tabular-nums;">'+r[0]+'</td><td style="padding:3px 8px;border-bottom:1px solid '+c.b+';">'+(p?e(p[2].slice(0,print?110:70)):'<em>not in catalog</em>')+'</td><td style="padding:3px 0 3px 8px;border-bottom:1px solid '+c.b+';white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums;">app '+r[1]+' · Oracle '+r[2]+(act?(r[3]?' ✓':' —'):'')+'</td></tr>'; }).join('');
+    var tbl='<table style="width:100%;border-collapse:collapse;font-size:11.5px;color:'+c.t+';margin:6px 0 12px;">'+rows+'</table>';
+    h+= print ? '<div style="margin-top:12px;font-size:13px;">'+head+'</div>'+tbl
+              : '<details style="margin-top:8px;"><summary style="cursor:pointer;font-size:12.5px;"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:'+g[2]+';margin-right:7px;"></span>'+head+'</summary>'+tbl+'</details>'; });
+  return h;
+}
+function _tuPrint(ov){ var pa=document.getElementById('printArea'); if(!pa) return;
+  pa.innerHTML='<div style="font-family:Arial,sans-serif;color:#000;padding:10px;"><h2 style="margin:0 0 4px;">Oracle True-Up</h2>'+_tuOverviewHtml(ov,true)+'</div>';
+  pa.style.display='block'; setTimeout(function(){ window.print(); setTimeout(function(){ pa.style.display='none'; },500); },50); }
+function tuPrintReview(){ if(!_tu) return; var ov={at:Date.now(),by:(user&&user.name)||'',file:_tu.file,lines:_tu.lines,g:{}};
+  _tu.plan.forEach(function(x){ (ov.g[x.k]=ov.g[x.k]||[]).push([x.o,x.aq,x.oq,_tu.incl[x.o]&&(x.k==='add'||x.k==='chg'||x.k==='rm')?1:0]); }); _tuPrint(ov); }
+function tuPrintHist(idx){ var h=hist[idx]; if(h&&h.trueup) _tuPrint(h.trueup); }
+function _tuHistCard(h,idx){ var ov=h.trueup, n=function(k){return ((ov.g&&ov.g[k])||[]).length;};
+  return '<div class="hcard" id="hcard-'+idx+'" style="border-left:3px solid #5db0e6;"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px;"><div><div style="font-size:13px;font-weight:800;color:var(--text);">🔄 Oracle True-Up</div><div style="font-size:11px;color:var(--muted);margin-top:2px;"><strong style="color:var(--teal);">'+n('ok')+'</strong> correct · <strong style="color:#37c8a0;">'+n('recv')+'</strong> received · <strong style="color:#ecc94b;">'+n('chg')+'</strong> qty differed · <strong style="color:#5db0e6;">'+n('add')+'</strong> added · <strong style="color:#e8857a;">'+(n('gone')+n('rm'))+'</strong> gone from Oracle</div></div><button class="btn-ghost" style="font-size:10px;" onclick="tuPrintHist('+idx+')">🖨️ Print</button></div>'+_tuOverviewHtml(ov,false)+'</div>'; }
+(function(){ if(typeof _histOrderCard!=='function') return; var _ho=_histOrderCard; _histOrderCard=function(h,idx){ return (h&&h.trueup)?_tuHistCard(h,idx):_ho(h,idx); }; })();
+
+/* ===== CATALOG GAPS =================================================
+   A standing worklist of Oracle numbers true-ups found on order in Oracle
+   but missing from the Master List. Derived from the true-up records in
+   History and filtered against the live catalog, so a part drops off the
+   moment it is added — nothing to tick off by hand. */
+function _tuUomCode(v){ var s=String(v||'').trim(); if(!s) return 'Ea';
+  for(var i=0;i<UOM_OPTIONS.length;i++){ if(UOM_OPTIONS[i][0].toLowerCase()===s.toLowerCase()||UOM_OPTIONS[i][1].toLowerCase()===s.toLowerCase()) return UOM_OPTIONS[i][0]; }
+  return s; }
+function _tuGaps(){
+  var have=Object.create(null);
+  try{ getActiveParts().forEach(function(p){ have[p[0]]=1; }); }catch(e){}
+  var out={};
+  for(var i=0;i<hist.length;i++){
+    var tu=hist[i]&&hist[i].trueup; if(!tu||!tu.gaps) continue;
+    var base=tu.at||0;
+    Object.keys(tu.gaps).forEach(function(o){
+      if(have[o]) return;                              // in the catalog now → gone from the list
+      var r=tu.gaps[o]||{}, at=r.at||base, x=out[o];
+      if(!x) x=out[o]={o:o,first:at,last:0,qty:0,uom:'Ea',due:0,tos:{},seen:0};
+      x.seen++; if(at&&at<x.first) x.first=at;
+      if(at>=x.last){ x.last=at; x.qty=r.qty||0; x.uom=r.uom||'Ea'; x.due=r.due||0; }
+      var t=r.tos||[]; for(var k=0;k<t.length;k++) x.tos[t[k]]=1;
+    });
+  }
+  return Object.keys(out).map(function(o){return out[o];}).sort(function(a,b){return a.first-b.first;});
+}
+function tuGapFill(o){
+  var g=_tuGaps().filter(function(x){return x.o===o;})[0]; if(!g) return;
+  var S=function(id,v){ var el=document.getElementById(id); if(el) el.value=v; };
+  S('manOraNum',g.o); S('manSageNum',''); S('manDesc','');
+  var u=document.getElementById('manUom');
+  if(u){ try{ u.innerHTML=uomOptionsHtml(g.uom); }catch(e){} u.value=g.uom; }
+  var d=document.getElementById('manDesc');
+  if(d){ try{ d.scrollIntoView({block:'center',behavior:'smooth'}); }catch(e){} try{ d.focus(); }catch(e){} }
+  toast('Oracle # '+g.o+' filled in — add the description');
+}
+function tuGapCopy(){
+  var L=_tuGaps(); if(!L.length){ toast('Nothing to copy'); return; }
+  var txt=L.map(function(g){return g.o;}).join('\n');
+  try{ navigator.clipboard.writeText(txt).then(function(){ toast('Copied '+L.length+' Oracle number'+(L.length===1?'':'s')); },
+       function(){ toast('Your browser blocked the copy'); }); }catch(e){ toast('Your browser blocked the copy'); }
+}
+function renderTuGaps(){
+  var el=document.getElementById('tuGapCard'); if(!el) return;
+  var L=_tuGaps();
+  if(!L.length){ el.style.display='none'; el.innerHTML=''; return; }
+  el.style.display='';
+  var rows=L.map(function(g){
+    var tos=Object.keys(g.tos), meta=[g.qty+' '+g.uom+' on order'];
+    if(tos.length) meta.push('TO '+tos.slice(0,3).join(', ')+(tos.length>3?' +'+(tos.length-3):''));
+    if(g.due) meta.push('due '+new Date(g.due).toLocaleDateString());
+    meta.push('first seen '+new Date(g.first).toLocaleDateString());
+    if(g.seen>1) meta.push('on '+g.seen+' true-ups');
+    return '<div style="display:flex;align-items:center;gap:10px;padding:9px 11px;border-bottom:1px solid var(--border);flex-wrap:wrap;">'+
+      '<span style="flex:1;min-width:150px;"><span style="display:block;font-size:14px;font-weight:700;color:var(--teal);letter-spacing:.5px;font-variant-numeric:tabular-nums;">'+g.o+'</span>'+
+      '<span style="display:block;font-size:10.5px;color:var(--muted);margin-top:2px;">'+e(meta.join(' · '))+'</span></span>'+
+      '<button class="btn-ghost" style="font-size:10px;white-space:nowrap;" onclick="tuGapFill(\''+g.o+'\')">Add to catalog</button></div>';
+  }).join('');
+  el.innerHTML='<h3>🧩 On order in Oracle — not in our catalog</h3>'+
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">Oracle has these on order for this fleet, but they are not in the Master List, so the app cannot show or track them. Look each one up in Oracle, then add it with the form below — it leaves this list as soon as it is in the catalog.</div>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">'+
+      '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">'+L.length+' to identify</div>'+
+      '<button class="btn-ghost" style="font-size:10px;" onclick="tuGapCopy()">Copy numbers</button></div>'+
+    '<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">'+rows+'</div>';
+}
+(function(){ var _sc=window._setCustomParts;
+  if(typeof _sc==='function'){ window._setCustomParts=function(){ var r=_sc.apply(this,arguments); try{ renderTuGaps(); }catch(e){} return r; }; } })();
+
+/* ===== PER-ITEM EDIT STAMPS =========================================
+   receivedAt and orderAdded already tell us when a part was received or
+   first requested. They do NOT cover an admin editing a quantity or
+   flipping a status, which a stale true-up would quietly undo. This
+   records the last time each Oracle # was edited here, syncs it like the
+   rest of the order state, and feeds the true-up staleness guard.
+   Implemented as wrappers so the app's own functions stay as they were. */
+var orderTouched={};
+var TU_TOUCH_KEY='f6_ot';
+var TU_TOUCH_MAXAGE=120*24*60*60*1000;
+function _tuTouch(o){ if(o) orderTouched[String(o)]=Date.now(); }
+function _tuTouchPrune(){
+  var cut=Date.now()-TU_TOUCH_MAXAGE;
+  Object.keys(orderTouched).forEach(function(k){ if(!(orderTouched[k]>cut)) delete orderTouched[k]; });
+}
+(function(){
+  var _save=window.save;
+  if(typeof _save==='function') window.save=function(){
+    var r=_save.apply(this,arguments);
+    try{ _tuTouchPrune(); localStorage.setItem(TU_TOUCH_KEY,JSON.stringify(orderTouched)); }catch(e){}
+    try{ if(typeof fbReady!=='undefined'&&fbReady&&typeof fbDb!=='undefined'&&fbDb) fbDb.ref('orderTouched').set(orderTouched||{}); }catch(e){}
+    return r;
+  };
+  var _load=window.load;
+  if(typeof _load==='function') window.load=function(){
+    var r=_load.apply(this,arguments);
+    try{ orderTouched=JSON.parse(localStorage.getItem(TU_TOUCH_KEY)||'{}')||{}; }catch(e){ orderTouched={}; }
+    return r;
+  };
+  // Merge rather than replace: the newest stamp for each part wins, so a
+  // local edit is never clobbered by an older copy arriving from the cloud.
+  var _fbi=window.fbInit;
+  if(typeof _fbi==='function') window.fbInit=function(){
+    var r=_fbi.apply(this,arguments);
+    try{
+      if(!window.__tuTouchBound && typeof fbDb!=='undefined' && fbDb){
+        window.__tuTouchBound=1;
+        fbDb.ref('orderTouched').on('value',function(snap){
+          var v=snap.val()||{};
+          Object.keys(v).forEach(function(k){ if(!(orderTouched[k]>v[k])) orderTouched[k]=v[k]; });
+          try{ localStorage.setItem(TU_TOUCH_KEY,JSON.stringify(orderTouched)); }catch(e){}
+        });
+      }
+    }catch(e){}
+    return r;
+  };
+  // Stamp only when the call actually changed the item, so a refused action
+  // (wrong role, no-op) never trips the guard.
+  function snapOf(o){ try{ return [order[o],orderStatus[o],reorderQty[o],reorderStatus[o],backorderFlag[o]].join('|'); }catch(e){ return ''; } }
+  ['setQ','adjQ','setRQ','adjRQ','setItemStatus','pullPart','pullReorder'].forEach(function(fn){
+    var orig=window[fn]; if(typeof orig!=='function') return;
+    window[fn]=function(o){
+      var before=snapOf(o), r=orig.apply(this,arguments);
+      try{ if(snapOf(o)!==before){ _tuTouch(o); if(typeof save==='function') save(); } }catch(e){}
+      return r;
+    };
+  });
+})();
+
+/* ===== SECTION HELP ==================================================
+   The Admin tab holds a lot of controls under one "?" button. Each card
+   gets its own, and the true-up additions are folded into the existing
+   tab help so the "?" on every page still matches what the page does. */
+(function(){
+  if(typeof HELP_CONTENT==='undefined') return;
+
+  HELP_CONTENT.adm_controls={ title:"🔐 Administrative Controls — Help", sections:[
+    { heading:"What lives here", items:[
+      "<strong>🗑 Remove items…</strong> opens a checklist of every part still awaiting receipt. Tick the ones that are dead — cancelled, never coming, ordered by mistake — and they are removed for the whole fleet. There is no self-serve undo, so read the list before confirming.",
+      "<strong>📝 View Event Log</strong> is the per-action audit trail: who added, removed, changed a quantity, submitted, received or reverted a part, with a timestamp and their department profile. It keeps a rolling 180 days.",
+      "<strong>❓ What-if…</strong> is the correction playbook — what to do when something was received, ignored or submitted by mistake.",
+    ]},
+    { heading:"Worth knowing", items:[
+      "The Event Log is stored <strong>on this device only</strong>. It does not sync, so another admin on another device sees their own log, not yours.",
+      "<strong>Clear Log</strong> wipes it permanently and cannot be undone.",
+    ]}
+  ]};
+
+  HELP_CONTENT.adm_schedule={ title:"🗓️ Weekly Schedule — Help", sections:[
+    { heading:"What you are setting", items:[
+      "<strong>Weekly reset</strong> is the day and time the week closes out: the whole order is snapshotted to History and anything unreceived moves to Parts Received as awaiting fulfillment. Currently <strong>{RESET}</strong>.",
+      "<strong>Audit due</strong> is when the Parts Received Audit reminder starts nagging for that week.",
+      "<strong>Fleet number</strong> and <strong>Fleet icon</strong> are cosmetic — they set the name and badge shown throughout the app.",
+    ]},
+    { heading:"Before you change it", items:[
+      "These settings apply to <strong>the whole fleet</strong>, not just your device. Everyone's app follows the new schedule as soon as you hit <strong>Save schedule</strong>.",
+      "The reset is evaluated in each device's <strong>local time</strong>, so a crew in another timezone closes out at their own clock reading of that time.",
+      "Moving the reset earlier does not retroactively close a week that already passed.",
+    ]}
+  ]};
+
+  HELP_CONTENT.adm_broadcast={ title:"📣 Broadcast Banner — Help", sections:[
+    { heading:"What it does", items:[
+      "Puts a coloured message across the top of the app for <strong>every user on this fleet</strong> — shipment delays, a change of plan for the week, anything the crews need to see without being told twice.",
+      "<strong>Preview</strong> shows exactly how it will look before anyone else sees it.",
+    ]},
+    { heading:"How long it stays up", items:[
+      "<strong>Stops after</strong> sets the expiry: 1 hour, 4, 8, end of today, 24 hours, 3 days, 1 week, or <strong>Manual — until I stop it</strong>.",
+      "<strong>■ Stop now</strong> pulls it immediately regardless of the timer.",
+      "A manual banner stays until someone takes it down, so use a timer unless you mean it to persist.",
+    ]}
+  ]};
+
+  HELP_CONTENT.adm_export={ title:"📤 Export Current Order — Help", sections:[
+    { heading:"Three ways out", items:[
+      "<strong>🖨️ Print / Save as PDF</strong> — a formatted sheet of the current order, grouped and readable. Use your browser's print dialog to save it as a PDF instead of printing.",
+      "<strong>📊 Save as Excel (.xlsx)</strong> — a spreadsheet for keying into Oracle or sending on.",
+      "<strong>📄 Save as CSV</strong> — plain text, for anything that will not take an .xlsx.",
+    ]},
+    { heading:"What is included", items:[
+      "All three export <strong>the current weekly order</strong> — this week's requests plus anything carried over. They are a snapshot of the moment you click, not a live link.",
+      "To see what a past week looked like, use the <strong>History</strong> tab instead.",
+    ]}
+  ]};
+
+  HELP_CONTENT.adm_master={ title:"📦 Master Parts List Management — Help", sections:[
+    { heading:"Four ways to change the catalog", items:[
+      "<strong>Upload New Oracle Extract (.xlsx)</strong> — bulk add or update from an Oracle export. You get a preview with the column mapping and a choice of Merge / Add only / Update only / Replace before anything changes.",
+      "<strong>Manually Add a Part</strong> — one part at a time. Oracle # and Description are required; SAGE, UOM and Department are optional.",
+      "<strong>Search, Edit &amp; Delete Parts</strong> — fix a description or remove a part that should not be there.",
+      "<strong>↺ Reset to Default List</strong> — throws away every custom change and returns to the catalog built into the app. This is the big one; it cannot be undone from here.",
+    ]},
+    { heading:"Before you change it", items:[
+      "The catalog is <strong>shared by the whole fleet</strong>. A description you fix, or a part you delete, changes it for everyone.",
+      "A backup is taken automatically on every catalog change, and <strong>↩ Restore Previous</strong> rolls back the last one.",
+      "Deleting a part that someone has favorited leaves them an orphaned favorite — the app flags these rather than losing them silently.",
+    ]}
+  ]};
+
+  HELP_CONTENT.adm_trueup={ title:"🔄 Oracle True-Up — Help", sections:[
+    { heading:"What it is for", items:[
+      "The <strong>Parts Received</strong> list drifts from Oracle over time — someone forgets to mark a receipt, an order gets placed without going through the app, a line gets cancelled in Oracle. This makes the app match Oracle again.",
+      "It only touches the <strong>awaiting receipt</strong> list. This week's current order is left alone.",
+    ]},
+    { heading:"Uploading", items:[
+      "Export the <strong>open transfer orders</strong> for this fleet from Oracle and choose the file. Excel, CSV, tab-separated text and Oracle XML all work, or paste rows straight off the Oracle screen.",
+      "Columns are worked out from <strong>what the cells contain</strong>, not the header names, so the layout does not have to match. Check the dropdowns at the top of the review screen and correct any it got wrong — your correction is remembered for next time.",
+    ]},
+    { heading:"When it was pulled", items:[
+      "The <strong>pulled from Oracle</strong> date and time defaults to the file's own timestamp. Fix it if that is wrong — everything below depends on it.",
+      "The export is a snapshot. Any part your crews <strong>received, requested or edited after</strong> that moment is flagged in amber and left unticked, so a day-old file cannot quietly undo work done since.",
+      "If the file predates your last true-up you get a warning, because almost every row will be out of date.",
+    ]},
+    { heading:"The review screen", items:[
+      "<strong>Correct</strong> — the app and Oracle already agree. Nothing to do.",
+      "<strong>On order with a different quantity</strong> — the app is set to Oracle's number.",
+      "<strong>Oracle says on order, not in the app</strong> — added to Parts Received as Submitted.",
+      "<strong>Waiting to be received, not on Oracle</strong> — Oracle shows nothing open, so it is cleared from Parts Received.",
+      "<strong>Not in the parts catalog</strong> — shown for information and skipped. They collect in the section below this one.",
+      "Every row has a tick box and nothing happens until you press <strong>Approve &amp; true up</strong>. <strong>🖨️ Print</strong> gives you the whole comparison on paper first.",
+    ]},
+    { heading:"Afterwards", items:[
+      "The run is saved to <strong>History</strong> for everyone, showing who approved it, what the file said and which rows were applied.",
+      "<strong>↩ Undo</strong> appears here and puts Parts Received back as it was. Anything received between the true-up and the undo is lost, and the undo only works from the device that ran it.",
+    ]}
+  ]};
+
+  HELP_CONTENT.adm_gaps={ title:"🧩 On order in Oracle — not in our catalog — Help", sections:[
+    { heading:"What this list is", items:[
+      "Oracle numbers that a true-up found <strong>on order for this fleet</strong> but which are not in the Master List. The app cannot show or track a part it does not have, so these are skipped until someone identifies them.",
+      "Each row carries what the Oracle export knew: quantity and unit on order, the transfer order numbers, the due date, and when it first showed up.",
+    ]},
+    { heading:"Working through it", items:[
+      "Look the Oracle number up in Oracle to find out what the part actually is — the export has no description, which is why this cannot be automated.",
+      "<strong>Add to catalog</strong> fills the Oracle # and unit into the Manually Add a Part form below; you type the description.",
+      "<strong>Copy numbers</strong> puts the whole list on the clipboard for pasting into Oracle in one go.",
+    ]},
+    { heading:"It clears itself", items:[
+      "The list is worked out fresh from the true-up records every time you open the tab, then checked against the live catalog. Add the part by any route and it disappears — there is nothing to tick off.",
+      "Entries are only recorded when a true-up is <strong>approved</strong>. Upload and cancel and nothing is logged.",
+    ]}
+  ]};
+
+  // Fold the true-up into the existing tab help so every "?" stays accurate.
+  function addSection(key, sec, atTop){
+    var h=HELP_CONTENT[key]; if(!h||!h.sections) return;
+    for(var i=0;i<h.sections.length;i++){ if(h.sections[i].heading===sec.heading) return; }
+    if(atTop) h.sections.splice(1,0,sec); else h.sections.push(sec);
+  }
+  addSection('received',{ heading:"🔄 Trued up against Oracle", items:[
+    "An admin can upload Oracle's open transfer orders and make this list match them, so what you see here should reflect what Oracle actually has on order.",
+    "That can <strong>add</strong> parts you did not order through the app, <strong>correct</strong> a quantity, or <strong>clear</strong> something Oracle no longer shows — it never marks anything received for you.",
+    "Every true-up is recorded on the <strong>History</strong> tab, so you can see what changed and when.",
+  ]});
+  addSection('history',{ heading:"🔄 Oracle True-Up cards", items:[
+    "Logged each time an admin makes Parts Received match Oracle's open transfer orders.",
+    "Shows who approved it, when it ran, when the Oracle file was pulled, and the four groups: already correct, quantity differed, added from Oracle, cleared because Oracle showed nothing open.",
+    "Each row says whether it was actually applied or left alone. <strong>🖨️ Print</strong> gives you the whole record on paper.",
+  ]});
+  addSection('admin',{ heading:"🔄 Oracle True-Up", items:[
+    "Upload Oracle's open transfer orders to make <strong>Parts Received</strong> match Oracle again after drift.",
+    "Nothing is applied until you approve it, rows changed here since the file was pulled are flagged and left unticked, and the run is recorded in History with a one-click undo.",
+    "Oracle numbers that are not in the Master List collect in their own section for someone to identify and add.",
+    "Full detail is behind the <strong>?</strong> on that section.",
+  ]});
+  var el=HELP_CONTENT.admin&&HELP_CONTENT.admin.sections;
+  if(el) for(var i=0;i<el.length;i++){
+    if(el[i].heading==='Event Log'){
+      var has=el[i].items.join(' ').indexOf('device')>=0;
+      if(!has) el[i].items.push("The log is kept <strong>on this device only</strong> — it does not sync between admins.");
+    }
+  }
+})();
+
+// A red, slowly pulsing "?" on each Admin card, wired to that card's help.
+var TU_SEC_KEYS=[[/administrative controls/i,'adm_controls'],[/weekly schedule/i,'adm_schedule'],
+  [/broadcast/i,'adm_broadcast'],[/export current order/i,'adm_export'],[/oracle true-up/i,'adm_trueup'],
+  [/not in our catalog/i,'adm_gaps'],[/master parts list/i,'adm_master']];
+function _tuSecHelpCss(){
+  if(document.getElementById('tuSecHelpCss')) return;
+  var st=document.createElement('style'); st.id='tuSecHelpCss';
+  st.textContent='.sec-help{display:inline-flex;align-items:center;justify-content:center;width:21px;height:21px;'+
+    'margin-left:9px;padding:0;border-radius:50%;background:rgba(217,95,95,.12);border:1px solid rgba(217,95,95,.6);'+
+    'color:#ef8f7f;font-size:12px;font-weight:800;line-height:1;cursor:pointer;vertical-align:middle;flex:0 0 auto;'+
+    'animation:secHelpGlow 3.4s ease-in-out infinite;transition:background .15s,color .15s;}'+
+    '.sec-help:hover,.sec-help:focus{background:rgba(217,95,95,.3);color:#ffc0b3;border-color:#e0705c;'+
+    'animation:none;box-shadow:0 0 0 3px rgba(217,95,95,.2);outline:none;}'+
+    '@keyframes secHelpGlow{0%,100%{box-shadow:0 0 0 0 rgba(217,95,95,0);border-color:rgba(217,95,95,.45);}'+
+    '50%{box-shadow:0 0 11px 2px rgba(217,95,95,.5);border-color:rgba(217,95,95,.95);}}'+
+    '@media(prefers-reduced-motion:reduce){.sec-help{animation:none;}}';
+  document.head.appendChild(st);
+}
+function _tuSecHelpInject(){
+  try{
+    _tuSecHelpCss();
+    var cards=document.querySelectorAll('#tab-admin .acard');
+    for(var i=0;i<cards.length;i++){
+      var h=cards[i].querySelector('h3');
+      if(!h || h.querySelector('.sec-help')) continue;
+      var txt=h.textContent||'', key='';
+      for(var k=0;k<TU_SEC_KEYS.length;k++){ if(TU_SEC_KEYS[k][0].test(txt)){ key=TU_SEC_KEYS[k][1]; break; } }
+      if(!key || !HELP_CONTENT[key]) continue;
+      var b=document.createElement('button');
+      b.type='button'; b.className='sec-help'; b.textContent='?';
+      b.title='What this section does'; b.setAttribute('aria-label','Help for '+txt.replace(/\s+/g,' ').trim());
+      b.onclick=(function(kk){ return function(ev){ ev.stopPropagation(); openHelp(kk); }; })(key);
+      h.appendChild(b);
+    }
+  }catch(e){}
+}
 </script>
 </body>
 </html>
